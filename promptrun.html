@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+ <meta charset="utf-8">
+ <title>Adventure Prompt Runner</title>	
+ <style>
+	body {
+		Font-family: serif;
+		Font-size: 16pt;
+		Color: black;
+		Background-color: tan;
+		Margin: 0;
+		Padding: 0;
+		Position: fixed;
+		Top: 0;
+		Left: 0;
+		Right: 0;
+		Bottom: 0;
+	}
+	
+	h1, h2 { Font-family: sans-serif; }
+	
+	.page-frame {
+		Width: 50%;
+		Height: 90%;
+		Float: left;
+	}
+	
+	.page-content {
+		Height: 90%;
+		Margin: 1em;
+		Padding: 1em;
+		Overflow: auto;
+		Line-height: 1.5em;
+		/*Text-align: justify;*/
+		Background-color: white;
+		Box-shadow: 0.5ex 0.5ex 0.5ex saddlebrown;
+	}
+	
+	#toolbar {
+		Position: fixed;
+		Bottom: 0;
+		Width: 60%;
+		Left: 20%;
+		Padding: 0.5ex 0;
+		Text-align: center;
+	}
+	
+	.page-content p { Text-indent: 3ex; }
+	.title-page p, .edition-notice p { Text-indent: 0; }
+	p.ending {
+		Text-indent: 0;
+		Text-align: center;
+		Font-weight: bold;
+	}
+	
+	.title-page { Text-align: center; }
+	
+	button {
+		Font-family: sans-serif;
+		Font-weight: bold;
+		Font-size: 12pt;
+		Color: white;
+		Background-color: saddlebrown;
+		Padding: 0.5ex 1em;
+		Margin: 0.5ex;
+		Border-radius: 1em;
+		/*Width: 6em;*/
+	}
+	
+	button:disabled { Opacity: 0.5; }
+	
+	.status-line, dt {
+		Background-color: black;
+		Color: white;
+		Font-weight: bold;
+		Font-family: monospace;
+		Font-size: 12pt;
+	}
+	
+	.status-line { Text-align: right; }
+ </style>
+</head>
+
+<body>
+
+<div class="page-frame">
+ <div id="verso-page" class="page-content">
+  Welcome to Adventure Prompt, an experimental (as of 6 Nov 2016) engine for interactive fiction; this is the runner, or interpreter &mdash; the half that allows you to actually play games.
+ </div>
+</div>
+
+<div class="page-frame">
+ <div id="recto-page" class="page-content">
+  <div class="title-page">
+   <h1>Adventure Prompt</h1>
+   <p>an interactive fiction engine
+   <p>by
+   <p><b>Felix Pleşoianu</b>
+   <form id="file-browser">
+    <label>
+     Pick a story file from your computer:
+     <input type="file" id="local-file">
+    </label>
+   </form>
+  </div>
+ </div>
+</div>
+
+<div id="toolbar">
+ <button type="button" id="wait-button" disabled>wait</button>
+ <button type="button" id="undo-button" disabled>undo</button>
+ <button type="button" id="restart-button" disabled>restart</button>
+</div>
+
+<script>
+var game_data = {};
+
+var verso;
+var recto;
+
+function say(page, content) {
+	if (typeof content === "string")
+		page.appendChild(document.createTextNode(content));
+	else
+		page.appendChild(content);
+}
+
+function tag(name, content) {
+	var t = document.createElement(name);
+	if (content !== undefined) {
+		if (typeof content === "string")
+			t.innerHTML = content;
+		else
+			t.appendChild(content);
+	}
+	return t;
+}
+
+function title_page(metadata) {
+	var page = tag("div");
+	page.className = "title-page";
+	say(page, tag("h1", metadata.title));
+	say(page, tag("p", metadata.subtitle));
+	say(page, tag("p", "by"));
+	say(page, tag("p", tag("b", metadata.author)));
+	
+	var start = tag("button", "Turn the page");
+	start.type = "button";
+	start.addEventListener("click", start_game, false);
+	say(page, tag("p", start));
+	
+	return page;
+}
+
+function edition_notice(metadata) {
+	var page = tag("div");
+	page.className = "edition-notice";
+	say(page, tag("div", tag("b", metadata.title)));
+	say(page, tag("div", metadata.subtitle));
+	say(page, tag("p", metadata.author));
+	say(page, tag("p", metadata.date));
+	say(page, tag("p", metadata.license));
+	say(page, tag("p", metadata.ifid));
+	return page;
+}
+
+function status_line() {
+	var line = tag("p");
+	line.className = "status-line";
+	say(line, "Turns: " + game_data.meta.turns);
+	say(line, " Score: " + game_data.meta.score);
+	return line;
+}
+
+function visible_objects() {
+	var list = tag("dl");
+	
+	say(list, tag("dt", "You see:"));
+	say(list, tag("dd",
+		object_list(find_objects_in(
+			game_data.objects.hero.location))));
+	say(list, tag("dt", "You are carrying:"));
+	say(list, tag("dd", object_list(find_objects_in("hero"))));
+	
+	return list;
+}
+
+function find_objects_in(loc) {
+	var found = {};
+	for (var i in game_data.objects) {
+		var obj = game_data.objects[i];
+		if (obj.location !== loc)
+			continue;
+		else if (obj.type === "exit")
+			continue;
+		else if (i === "hero")
+			continue;
+		else
+			found[i] = obj;
+	}
+	return found;
+}
+
+function object_list(group) {
+	var list = tag("ul");
+	for (var i in group) {
+		var item = tag("li", group[i].name);
+		var actions = object_actions(i, group[i]);
+		for (var j in actions)
+			say(item, actions[j]);
+		say(list, item);
+	}
+	return list;
+}
+
+function object_actions(obj_id, obj) {
+	var list = [];
+	switch (obj.type) {
+		case "thing":
+			list.push(action_button(
+				"look", obj_id, handle_look_at));
+			if (obj.location === "hero")
+				list.push(action_button(
+					"drop", obj_id, handle_drop));
+			else
+				list.push(action_button(
+					"take", obj_id, handle_take));
+	}
+	return list;
+}
+
+function action_button(label, obj_id, handler) {
+	var button = document.createElement("button");
+	button.type = "button";
+	button.setAttribute("data-target", obj_id);
+	button.innerHTML = label;
+	button.addEventListener("click", handler, false);
+	return button;
+}
+
+function handle_look_at() {
+	var obj_id = this.getAttribute("data-target");
+	var obj = game_data.objects[obj_id];
+
+	game_data.meta.turns++;
+	verso.innerHTML = "";
+	say(verso, status_line());
+	look();
+	
+	recto.innerHTML = "";
+	if (obj.description) {
+		say(recto, tag("p", obj.description));
+	} else {
+		say(recto, tag("p", "You see nothing special."));
+	}
+	say(recto, visible_objects());
+}
+
+function handle_take() {
+	var obj_id = this.getAttribute("data-target");
+	var obj = game_data.objects[obj_id];
+	
+	game_data.meta.turns++;
+	verso.innerHTML = "";
+	say(verso, status_line());
+	look();
+	
+	recto.innerHTML = "";
+	if (pass_lock("hero", obj.lock)) {
+		obj.location = "hero";
+		if (obj.success)
+			say(recto, tag("p", obj.success));
+		else
+			say(recto, tag("p", "Taken."));
+	} else if (obj.failure) {
+		say(recto, tag("p", obj.failure));
+	} else {
+		say(recto, tag("p", "You can't seem to pick that up."));
+	}
+	say(recto, visible_objects());
+}
+
+function handle_drop() {
+	var obj_id = this.getAttribute("data-target");
+	var obj = game_data.objects[obj_id];
+	var room_id = game_data.objects.hero.location;
+	var here = game_data.objects[room_id];
+
+	game_data.meta.turns++;
+	verso.innerHTML = "";
+	say(verso, status_line());
+	look();
+	
+	recto.innerHTML = "";
+	if (obj.sticky) {
+		if (obj.nodrop)
+			say(recto, tag("p", obj.nodrop));
+		else
+			say(recto, tag("p",
+				"You try to drop that, but can't seem to."));
+	} else if (here.sticky) {
+		if (here.nodrop)
+			say(recto, tag("p", here.nodrop));
+		else
+			say(recto, tag("p",
+				"You try to drop that, but can't seem to."));
+	} else {
+		obj.location = room_id;
+		if (obj.drop)
+			say(recto, tag("p", obj.drop));
+		else
+			say(recto, tag("p", "Dropped."));
+	}
+	say(recto, visible_objects());
+}
+
+function look() {
+	var obj = game_data.objects;
+	var me = obj.hero;
+	var here = obj[me.location];
+	
+	say(verso, tag("div", tag("b", here.name)));
+	say(verso, tag("p", here.description));
+	
+	if (here.ending) {
+		if (here.success)
+			var succ = tag("p", "*** " + here.success + " ***");
+		else
+			var succ = tag("p", "*** The End ***");
+		succ.className = "ending";
+		say(verso, tag("p", succ));
+	} else {
+		say(verso, tag("p", here.success));		
+	}
+	
+	var exit_list = tag("div", "Exits: ");
+	for (var i in obj) {
+		if (obj[i].location !== me.location)
+			continue;
+		else if (obj[i].type !== "exit")
+			continue;
+
+		say(exit_list, action_button(obj[i].name, i, handle_exit));
+	}
+	verso.appendChild(exit_list);
+	
+	if (here.ending)
+		end_game();
+}
+
+function handle_exit() {
+	var exit_id = this.getAttribute("data-target");
+	var exit_obj = game_data.objects[exit_id];
+	
+	if (exit_obj.visited && exit_obj.sticky) {
+		pass_through(exit_obj);
+	} else if (pass_lock("hero", exit_obj.lock)) {
+		pass_through(exit_obj);
+	} else {
+		say(verso, tag("p", exit_obj.failure));
+	}
+}
+
+function pass_lock(actor_id, lock) {
+	if (lock === undefined) {
+		return true;
+	} else if (lock === true) {
+		return false;
+	} else if (typeof lock === "string") {
+		if (lock[0] === "+") {
+			var key_id = lock.substr(1);
+			var key = game_data.objects[key_id];
+			return key.location === actor_id;
+		} else if (lock[0] === "-") {
+			var key_id = lock.substr(1);
+			var key = game_data.objects[key_id];
+			return key.location !== actor_id;
+		} else {
+			return lock === actor_id;
+		}
+	} else if (typeof lock === "object") {
+		var objs = game_data.objects
+		for (var i in find_objects_in(actor_id)) {
+			for (var j in lock) {
+				if (objs[i][j] === lock[j])
+					return true;
+			}
+		}
+		return false;
+	}
+}
+
+function pass_through(exit_obj) {
+	game_data.objects.hero.location = exit_obj.link;
+	exit_obj.visited = true;
+
+	game_data.meta.turns++;
+	verso.innerHTML = "";
+	say(verso, status_line());
+	say(verso, tag("p", exit_obj.success));
+	look();
+	
+	recto.innerHTML = "";
+	say(recto, visible_objects());
+}
+
+function start_game() {
+	game_data.meta.turns = 0;
+	game_data.meta.score = 0;
+
+	verso.innerHTML = "";
+	say(verso, status_line());
+	say(verso, tag("p", game_data.config.banner));
+	look();
+	
+	recto.innerHTML = "";
+	say(recto, visible_objects());
+}
+
+function end_game() {
+	var buttons = document.getElementsByTagName("button");
+	for (var i in buttons)
+		buttons[i].disabled = true;
+	document.getElementById("restart-button").disabled = false;
+}
+
+window.addEventListener("load", function () {
+	verso = document.getElementById("verso-page");
+	recto = document.getElementById("recto-page");
+
+	var input = document.getElementById("local-file");
+	input.addEventListener("change", function () {
+		var file = this.files[0];
+		var reader = new FileReader();
+		reader.onload = function () {
+			try {
+				game_data = JSON.parse(reader.result);
+				//console.log(game_data.objects.hero);
+				verso.innerHTML = "";
+				say(verso, edition_notice(game_data.meta));
+				recto.innerHTML = "";
+				say(recto, title_page(game_data.meta));
+			} catch (e) {
+				console.log(e);
+				alert("Can't load story file. See console.");
+			}
+		};
+		reader.readAsText(file);
+	}, false);
+}, false);
+</script>
+
+</body>	
+</html>
