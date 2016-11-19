@@ -254,6 +254,7 @@ function handle_look_at() {
 	} else {
 		say(recto, tag("p", "You see nothing special."));
 	}
+	say(recto, object_list(find_objects_in(obj_id)));
 	say(recto, visible_objects());
 }
 
@@ -306,7 +307,10 @@ function handle_drop() {
 			say(recto, tag("p",
 				"You try to drop that, but can't seem to."));
 	} else {
-		obj.location = room_id;
+		if (here.link)
+			obj.location = here.link;
+		else
+			obj.location = room_id;
 		if (obj.drop)
 			say(recto, tag("p", obj.drop));
 		else
