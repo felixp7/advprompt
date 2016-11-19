@@ -114,10 +114,13 @@
 </div>
 
 <script>
+var game_text = "{}";
 var game_data = {};
 
 var verso;
 var recto;
+
+var wait_button, undo_button, restart_button;
 
 function say(page, content) {
 	if (typeof content === "string")
@@ -249,7 +252,9 @@ function handle_look_at() {
 	look();
 	
 	recto.innerHTML = "";
-	if (obj.description) {
+	if (!obj.visited && obj.initial)
+		say(verso, tag("p", obj.initial));
+	else if (obj.description) {
 		say(recto, tag("p", obj.description));
 	} else {
 		say(recto, tag("p", "You see nothing special."));
@@ -270,6 +275,7 @@ function handle_take() {
 	recto.innerHTML = "";
 	if (pass_lock("hero", obj.lock)) {
 		obj.location = "hero";
+		obj.visited = true;
 		if (obj.success)
 			say(recto, tag("p", obj.success));
 		else
@@ -325,7 +331,11 @@ function look() {
 	var here = obj[me.location];
 	
 	say(verso, tag("div", tag("b", here.name)));
-	say(verso, tag("p", here.description));
+	if (!here.visited && here.initial)
+		say(verso, tag("p", here.initial));
+	else
+		say(verso, tag("p", here.description));
+	here.visited = true;
 	
 	if (here.ending) {
 		if (here.success)
@@ -420,6 +430,9 @@ function start_game() {
 	
 	recto.innerHTML = "";
 	say(recto, visible_objects());
+	
+	wait_button.disabled = false;
+	restart_button.disabled = false;
 }
 
 function end_game() {
@@ -432,6 +445,10 @@ function end_game() {
 window.addEventListener("load", function () {
 	verso = document.getElementById("verso-page");
 	recto = document.getElementById("recto-page");
+	
+	wait_button = document.getElementById("wait-button");
+	undo_button = document.getElementById("undo-button");
+	restart_button = document.getElementById("restart-button");
 
 	var input = document.getElementById("local-file");
 	input.addEventListener("change", function () {
@@ -439,6 +456,7 @@ window.addEventListener("load", function () {
 		var reader = new FileReader();
 		reader.onload = function () {
 			try {
+				game_text = reader.result;
 				game_data = JSON.parse(reader.result);
 				//console.log(game_data.objects.hero);
 				verso.innerHTML = "";
@@ -451,6 +469,26 @@ window.addEventListener("load", function () {
 			}
 		};
 		reader.readAsText(file);
+	}, false);
+	
+	wait_button.addEventListener("click", function () {
+		game_data.meta.turns++;
+		verso.innerHTML = "";
+		say(verso, status_line());
+		say(verso, tag("p", "You wait. Time passes..."));
+		look();
+		
+		recto.innerHTML = "";
+		say(recto, visible_objects());
+	}, false);
+	
+	undo_button.addEventListener("click", function () {
+		
+	}, false);
+	
+	restart_button.addEventListener("click", function () {
+		game_data = JSON.parse(game_text);
+		start_game();
 	}, false);
 }, false);
 </script>
