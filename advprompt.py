@@ -28,14 +28,17 @@ the same way online building works in a MUSH or MUCK. Walking simulators, or
 even simple room escape games, can be created without any scripting, unless
 you count the command language itself.
 
-For now, story files created with Adventure Prompt can be played in a
-browser-based interpreter, or even embedded in it to be distributed as a
-stand-alone web page. Interpreters for other platforms should be easy to
-code -- this is an explicit design goal.
+To begin with, type `look` (without the quotes) at the command prompt. Any
+game made with Adventure Prompt must contain at least two objects: an actor
+with id `hero`, and at least one room for the hero to be in (see: objects).
+You can make more objects with the build commands: `dig`, `open`, `create`;
+inspect their properties with `look`, `examine` or `say`; and change these
+properties with `set` or one of `name`, `desc`, `succ`, `fail`, `drop`,
+`lock`, `unlock`. Other commands allow you to save and restore a story file,
+clone and recycle objects, move your viewpoint around and so on.
 
-The authoring system creates story files in a simple database format
-(currently encoded as JSON), that can be easily read and understood by a
-human being. There's no preferred file extension yet.
+When loaded in an interpreter, the story starts wherever the hero is located
+initially; the author's viewpoint is only a convenience for building.
 """
 
 help_text["shortcuts"] = """
@@ -110,6 +113,20 @@ def shell_parse(text):
 		print(e)
 		return []
 
+def parse_value(text):
+	low = text.lower()
+	if low in ["true", "yes", "on"]:
+		return True
+	elif low in ["false", "no", "off"]:
+		return False
+	else:
+		try:
+			return float(text)
+		except ValueError:
+			return text
+		except OverflowError:
+			return text
+
 def new_meta():
 	return {"title": "Untitled", "author": "Anomymous"}
 
@@ -120,8 +137,7 @@ def new_room(name):
 	return {
 		"type": "room",
 		"name": name,
-		"description": "",
-		"location": None
+		"description": ""
 	}
 
 def new_actor(name, loc=None):
@@ -132,12 +148,12 @@ def new_actor(name, loc=None):
 		"location": loc
 	}
 
-def new_exit(name, link=None):
+def new_exit(name, loc=None):
 	return {
 		"type": "exit",
 		"name": name,
-		"link": link,
-		"location": None
+		"link": None,
+		"location": loc
 	}
 
 def new_thing(name, loc=None):
@@ -173,7 +189,7 @@ class Editor(cmd.Cmd):
 	
 	def find(self, prop, val):
 		obj = self.game["objects"]
-		return [o for o in obj if obj[o][prop] == val]
+		return [o for o in obj if obj[o].get(prop) == val]
 	
 	def examine(self, obj_id):
 		obj = self.game["objects"][obj_id]
@@ -352,13 +368,12 @@ class Editor(cmd.Cmd):
 		elif args[1] == "here" or args[1] == "me":
 			print("{0} is a reserved word.".format(args[1]))
 		elif len(args) < 3:
-			objs[args[1]] = new_exit(args[0])
-			objs[args[1]]["location"] = self.here
+			objs[args[1]] = new_exit(args[0], self.here)
 			self.modified = True
 			print("Exit created.")
 		elif args[2] in objs:
-			objs[args[1]] = new_exit(args[0], args[2])
-			objs[args[1]]["location"] = self.here
+			objs[args[1]] = new_exit(args[0], self.here)
+			objs[args[1]]["link"] = args[2]
 			self.modified = True
 			print("Exit created and linked.")
 		else:
@@ -558,7 +573,7 @@ class Editor(cmd.Cmd):
 				print("Flag reset.")
 			self.modified = True
 		else:
-			self.setprop(args[0], args[1], args[2])
+			self.setprop(args[0], args[1], parse_value(args[2]))
 			print("Property changed.")
 			self.modified = True
 	
@@ -643,8 +658,7 @@ class Editor(cmd.Cmd):
 			else:
 				print("No such setting.")
 		else:
-			# TO DO: parse numbers and booleans.
-			self.game["config"][args[0]] = args[1]
+			self.game["config"][args[0]] = parse_value(args[1])
 			self.modified = True
 			print("Field value changed.")
 	

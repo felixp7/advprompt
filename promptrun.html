@@ -172,7 +172,9 @@ function status_line() {
 	var line = tag("p");
 	line.className = "status-line";
 	say(line, "Turns: " + game_data.meta.turns);
-	say(line, " Score: " + game_data.meta.score);
+	if (game_data.config.use_score)
+		say(line, " Score: " + game_data.meta.score
+			+ "/" + (game_data.config.max_score || "?"));
 	return line;
 }
 
@@ -329,12 +331,13 @@ function look() {
 	var obj = game_data.objects;
 	var me = obj.hero;
 	var here = obj[me.location];
-	
+
 	say(verso, tag("div", tag("b", here.name)));
 	if (!here.visited && here.initial)
 		say(verso, tag("p", here.initial));
 	else
 		say(verso, tag("p", here.description));
+
 	here.visited = true;
 	
 	if (here.ending) {
@@ -355,7 +358,12 @@ function look() {
 		else if (obj[i].type !== "exit")
 			continue;
 
-		say(exit_list, action_button(obj[i].name, i, handle_exit));
+		var btn = action_button(obj[i].name, i, handle_exit);
+		if (!obj[i].visited && obj[i].initial)
+			btn.title = obj[i].initial;
+		else if (obj[i].description)
+			btn.title = obj[i].description;
+		say(exit_list, btn);
 	}
 	verso.appendChild(exit_list);
 	
@@ -410,6 +418,7 @@ function pass_through(exit_obj) {
 	exit_obj.visited = true;
 
 	game_data.meta.turns++;
+	score_object(exit_obj.link);
 	verso.innerHTML = "";
 	say(verso, status_line());
 	say(verso, tag("p", exit_obj.success));
@@ -417,6 +426,12 @@ function pass_through(exit_obj) {
 	
 	recto.innerHTML = "";
 	say(recto, visible_objects());
+}
+
+function score_object(obj_id) {
+	var obj = game_data.objects[obj_id];
+	if (obj.score && !obj.visited)
+		game_data.meta.score += obj.score;
 }
 
 function start_game() {
