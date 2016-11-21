@@ -340,20 +340,31 @@ function look() {
 
 	here.visited = true;
 	
-	if (here.ending) {
-		if (here.success)
-			var succ = tag("p", "*** " + here.success + " ***");
+	say(verso, success_message(here));
+	say(verso, exit_list(me.location));
+	
+	if (here.ending)
+		end_game();
+}
+
+function success_message(obj) {
+	if (obj.ending) {
+		if (obj.success)
+			var succ = tag("p", "*** " + obj.success + " ***");
 		else
 			var succ = tag("p", "*** The End ***");
 		succ.className = "ending";
-		say(verso, tag("p", succ));
+		return succ;
 	} else {
-		say(verso, tag("p", here.success));		
+		return tag("p", obj.success);
 	}
-	
-	var exit_list = tag("div", "Exits: ");
+}
+
+function exit_list(room_id) {
+	var list = tag("div", "Exits: ");
+	var obj = game_data.objects;
 	for (var i in obj) {
-		if (obj[i].location !== me.location)
+		if (obj[i].location !== room_id)
 			continue;
 		else if (obj[i].type !== "exit")
 			continue;
@@ -363,12 +374,9 @@ function look() {
 			btn.title = obj[i].initial;
 		else if (obj[i].description)
 			btn.title = obj[i].description;
-		say(exit_list, btn);
+		say(list, btn);
 	}
-	verso.appendChild(exit_list);
-	
-	if (here.ending)
-		end_game();
+	return list;
 }
 
 function handle_exit() {

@@ -52,6 +52,63 @@ In addition, typing the name of an object in the current room by itself
 will move the author's viewpoint to the exit's destination.
 """
 
+help_text["objects"] = """
+Objects are the basic building block of Adventure Prompt story files. Each
+story file needs to contain at least two objects in order to be valid:
+
+1. an actor with the ID `hero`, to serve as the player's avatar;
+2. a room for the hero to be in.
+
+Each object is recognized by a unique identifier (see: identifiers) and has
+at least two properties: a type and a name. The name is what the player sees.
+The type determines how the object can be interacted with, and the meaning
+of other properties. Currently, there are four main types of object:
+
+- `room` objects contain everything else in the story, even indirectly;
+  if an object's location (see: properties) can't be traced back to a room,
+  it's out of play and inaccessible;
+- `exit` objects connect rooms together into a navigable grid;
+- `actor`: these are the characters of the story -- only the hero for now;
+- `thing` denotes objects the player can pick up and carry around.
+"""
+
+help_text["identifiers"] = """
+Identifiers, IDs for short, are character strings by which objects are
+stored in the story file. You should keep identifiers short and easy to
+type; also, an ID shouldn't start with a "!" (exclamation point), "+"
+(plus sign) or "-" (minus sign). For exits, the recommended ID scheme is:
+
+	<room id>-<direction>
+	
+e.g. `foyer-w` or `bar-n`. Future versions may introduce other restrictions,
+such as forcing all IDs to lowercase.
+
+Two IDs are currently reserved: `here` always refers to where the author's
+viewpoint is currently located in the editor, and `me` for future use.
+"""
+
+help_text["properties"] = """
+Most objects support most of the properties below, with different meanings
+depending on each object's type:
+
+- string properties: type, name, description, success, failure, drop, nodrop;
+- reference properties: link, location;
+- numeric properties: score;
+- variant properties: lock.
+
+Of these, the editor is aware of type, name, description, location
+and link. All others are only meaningful to the story file interpreter.
+"""
+
+help_text["success"] = """
+The `success` property contains a message to be shown when the object is
+successfully used by the player. What that means depends on object type:
+
+- a room is successfully used when seen (and lit);
+- an exit is successfully used when traversed;
+- a thing is successfully used when picked up.
+"""
+
 help_text["flags"] = """
 - dark
 - sticky
@@ -81,29 +138,7 @@ The sticky flag applies to most types of objects:
 help_text["ending"] = """
 The game ends when an object with the `ending` flag set is successfully
 used by the player (see: success). The object's success message will be
-shown with appropriate formatting.
-"""
-
-help_text["properties"] = """
-Most objects support most of the properties below, with different meanings
-depending on each object's type:
-
-- string properties: type, name, description, success, failure, drop, nodrop;
-- reference properties: link, location;
-- numeric properties: score;
-- variant properties: lock.
-
-Of these, the editor is aware of type, name, description, location
-and link. All others are only meaningful to the story file interpreter.
-"""
-
-help_text["success"] = """
-The `success` property contains a message to be shown when the object is
-successfully used by the player. What that means depends on object type:
-
-- a room is successfully used when seen (and lit);
-- an exit is successfully used when traversed;
-- a thing is successfully used when picked up.
+shown with appropriate formatting. Currently this only works for rooms.
 """
 
 def shell_parse(text):
@@ -749,7 +784,10 @@ class Editor(cmd.Cmd):
 		print(help_text["shortcuts"])
 	
 	def help_objects(self):
-		print("To be done.")
+		print(help_text["objects"])
+	
+	def help_identifiers(self):
+		print(help_text["identifiers"])
 	
 	def help_rooms(self):
 		print("To be done.")
