@@ -109,6 +109,21 @@ successfully used by the player. What that means depends on object type:
 - a thing is successfully used when picked up.
 """
 
+help_text["linking"] = """
+Link is the quick command to set the target of an exit, room, etc. Syntax:
+
+	link source-id|here target-id
+
+Most objects can be linked to others. What that means depends on the type:
+
+- for exit objects (the most common case), it's where the exit leads to;
+- for room objects, it means where anything dropped in that room ends up
+  (think being at the top of a tree, versus the ground below);
+- a thing linked to something else will make the target not dark when
+  successfully picked up. Obvious use case: remove a tapestry from a wall
+  to reveal a secret passage.
+"""
+
 help_text["flags"] = """
 - dark
 - sticky
@@ -436,7 +451,7 @@ class Editor(cmd.Cmd):
 		here = self.game["objects"][self.here]
 		args = shell_parse(args)
 		if len(args) < 2:
-			print('Usage: link object-id|here room-id')
+			print('Usage: link source-id|here target-id')
 		elif args[1] not in self.game["objects"]:
 			print("No such object: {0}.".format(args[1]))
 		elif args[0] == "here":
@@ -795,8 +810,8 @@ class Editor(cmd.Cmd):
 	def help_exits(self):
 		print("To be done.")
 	
-	def help_links(self):
-		print("To be done.")
+	def help_linking(self):
+		print(help_text["linking"])
 	
 	def help_locks(self):
 		print("To be done.")
