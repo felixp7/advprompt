@@ -62,7 +62,11 @@ story file needs to contain at least two objects in order to be valid:
 Each object is recognized by a unique identifier (see: identifiers) and has
 at least two properties: a type and a name. The name is what the player sees.
 The type determines how the object can be interacted with, and the meaning
-of other properties. Currently, there are four main types of object:
+of other properties. See: types.
+"""
+
+help_text["types"] = """
+The editor directly supports four main object types:
 
 - `room` objects contain everything else in the story, even indirectly;
   if an object's location (see: properties) can't be traced back to a room,
@@ -70,6 +74,11 @@ of other properties. Currently, there are four main types of object:
 - `exit` objects connect rooms together into a navigable grid;
 - `actor`: these are the characters of the story -- only the hero for now;
 - `thing` denotes objects the player can pick up and carry around.
+
+To get other types, first `create` a thing, then `set` its type to one of:
+
+- `scenery`: these objects are part of the landscape and not meant to be
+  picked up. Additionally, if linked to somewhere else they act as an exit.
 """
 
 help_text["identifiers"] = """
@@ -286,7 +295,7 @@ class Editor(cmd.Cmd):
 		print("\nYou can see:")
 		for i in allhere:
 			obj = self.game["objects"][i]
-			if obj["type"] == "thing":
+			if obj["type"] not in ["exit", "actor"]:
 				print("\t{0} ({1})".format(obj["name"], i))
 	
 	def do_look(self, args):
@@ -487,7 +496,8 @@ class Editor(cmd.Cmd):
 		args = shell_parse(args)
 		if len(args) < 1:
 			print('Usage 1: lock object-id')
-			print('Usage 2: lock object-id actorID')
+			print('Usage 2: lock object-id vehicleID')
+			print('Usage 2: lock object-id !vehicleID')
 			print('Usage 3: lock object-id +thingID')
 			print('Usage 4: lock object-id -thingID')
 			print('Usage 5: lock object-id <property> <value>')
@@ -498,7 +508,7 @@ class Editor(cmd.Cmd):
 			self.modified = True
 			print("Object locked unconditionally.")
 		elif len(args) < 3:
-			if args[1][0] == "+" or args[1][0] == "-":
+			if args[1][0] in ["!", "+", "-"]:
 				obj_id = args[1][1:]
 			else:
 				obj_id = args[1]
@@ -800,6 +810,9 @@ class Editor(cmd.Cmd):
 	
 	def help_objects(self):
 		print(help_text["objects"])
+	
+	def help_types(self):
+		print(help_text["types"])
 	
 	def help_identifiers(self):
 		print(help_text["identifiers"])

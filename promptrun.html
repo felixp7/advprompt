@@ -231,6 +231,18 @@ function object_actions(obj_id, obj) {
 			else
 				list.push(action_button(
 					"take", obj_id, handle_take));
+			break;
+		case "scenery":
+			list.push(action_button(
+				"look", obj_id, handle_look_at));
+			if (obj.link) {
+				list.push(action_button(
+					"enter", obj_id, handle_exit));
+			}
+			break;
+		case "vehicle":
+			list.push(action_button(
+				"look", obj_id, handle_look_at));
 	}
 	return list;
 }
@@ -255,7 +267,7 @@ function handle_look_at() {
 	
 	recto.innerHTML = "";
 	if (!obj.visited && obj.initial)
-		say(verso, tag("p", obj.initial));
+		say(recto, tag("p", obj.initial));
 	else if (obj.description) {
 		say(recto, tag("p", obj.description));
 	} else {
