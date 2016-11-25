@@ -182,13 +182,20 @@ function visible_objects() {
 	var list = tag("dl");
 	
 	say(list, tag("dt", "You see:"));
-	say(list, tag("dd",
-		object_list(find_objects_in(
-			game_data.objects.hero.location))));
+	say(list, tag("dd", object_list(find_objects_in(room_here()))));
 	say(list, tag("dt", "You are carrying:"));
 	say(list, tag("dd", object_list(find_objects_in("hero"))));
 	
 	return list;
+}
+
+function room_here() {
+	var me = game_data.objects.hero;
+	var here = game_data.objects[me.location];
+	if (here.type === "vehicle")
+		return here.location;
+	else
+		return me.location;
 }
 
 function find_objects_in(loc) {
@@ -236,13 +243,19 @@ function object_actions(obj_id, obj) {
 			list.push(action_button(
 				"look", obj_id, handle_look_at));
 			if (obj.link) {
-				list.push(action_button(
-					"enter", obj_id, handle_exit));
+				list.push(exit_button(
+					"enter", obj_id, "hero"));
 			}
 			break;
 		case "vehicle":
 			list.push(action_button(
 				"look", obj_id, handle_look_at));
+			if (game_data.objects.hero.location === obj_id)
+				list.push(action_button(
+					"get off", obj_id, handle_get_off));
+			else
+				list.push(action_button(
+					"get on", obj_id, handle_get_on));
 	}
 	return list;
 }
@@ -253,6 +266,12 @@ function action_button(label, obj_id, handler) {
 	button.setAttribute("data-target", obj_id);
 	button.innerHTML = label;
 	button.addEventListener("click", handler, false);
+	return button;
+}
+
+function exit_button(label, obj_id, actor_id) {
+	var button = action_button(label, obj_id, handle_exit);
+	button.setAttribute("data-actor", actor_id);
 	return button;
 }
 
@@ -339,12 +358,62 @@ function handle_drop() {
 	say(recto, visible_objects());
 }
 
+function handle_get_on() {
+	var obj_id = this.getAttribute("data-target");
+	var obj = game_data.objects[obj_id];
+
+	recto.innerHTML = "";
+	if (pass_lock("hero", obj.lock)) {
+		game_data.objects.hero.location = obj_id;
+		obj.visited = true;
+		if (obj.success)
+			say(recto, tag("p", obj.success));
+		else
+			say(recto, tag("p",
+				"You get on the " + obj.name + "."));
+	} else if (obj.failure) {
+		say(recto, tag("p", obj.failure));
+	} else {
+		say(recto, tag("p",
+			"You can't seem to get on the " + obj.name + "."));
+	}
+	say(recto, visible_objects());
+
+	// This must be done after the hero has boarded the vehicle,
+	// so that exit buttons are generated with the right actor.
+	game_data.meta.turns++;
+	verso.innerHTML = "";
+	say(verso, status_line());
+	look();
+}
+
+function handle_get_off() {
+	var obj_id = this.getAttribute("data-target");
+	var obj = game_data.objects[obj_id];
+	game_data.objects.hero.location = obj.location;
+
+	game_data.meta.turns++;
+	verso.innerHTML = "";
+	say(verso, status_line());
+	look();
+
+	recto.innerHTML = "";
+	say(recto, tag("p", "You get off the " + obj.name + "."));
+	say(recto, visible_objects());
+}
+
 function look() {
 	var obj = game_data.objects;
 	var me = obj.hero;
 	var here = obj[me.location];
+	if (here.type === "vehicle") {
+		var vehicle_msg = " (on the " + here.name + ")";
+		here = obj[here.location];
+	} else {
+		var vehicle_msg = "";
+	}
 
-	say(verso, tag("div", tag("b", here.name)));
+	say(verso, tag("div", tag("b", here.name + vehicle_msg)));
 	if (!here.visited && here.initial)
 		say(verso, tag("p", here.initial));
 	else
@@ -375,13 +444,20 @@ function success_message(obj) {
 function exit_list(room_id) {
 	var list = tag("div", "Exits: ");
 	var obj = game_data.objects;
+	if (obj[room_id].type === "vehicle") {
+		var actor = room_id;
+		room_id = obj[room_id].location;
+	} else {
+		var actor = "hero";
+	}
+		
 	for (var i in obj) {
 		if (obj[i].location !== room_id)
 			continue;
 		else if (obj[i].type !== "exit")
 			continue;
 
-		var btn = action_button(obj[i].name, i, handle_exit);
+		var btn = exit_button(obj[i].name, i, actor);
 		if (!obj[i].visited && obj[i].initial)
 			btn.title = obj[i].initial;
 		else if (obj[i].description)
@@ -393,12 +469,14 @@ function exit_list(room_id) {
 
 function handle_exit() {
 	var exit_id = this.getAttribute("data-target");
+	var actor_id = this.getAttribute("data-actor");
 	var exit_obj = game_data.objects[exit_id];
+	var actor = game_data.objects[actor_id];
 	
 	if (exit_obj.visited && exit_obj.sticky) {
-		pass_through(exit_obj);
-	} else if (pass_lock("hero", exit_obj.lock)) {
-		pass_through(exit_obj);
+		pass_through(exit_obj, actor);
+	} else if (pass_lock(actor_id, exit_obj.lock)) {
+		pass_through(exit_obj, actor);
 	} else {
 		say(verso, tag("p", exit_obj.failure));
 	}
@@ -418,6 +496,9 @@ function pass_lock(actor_id, lock) {
 			var key_id = lock.substr(1);
 			var key = game_data.objects[key_id];
 			return key.location !== actor_id;
+		} else if (lock[0] === "!") {
+			var key_id = lock.substr(1);
+			return key_id !== actor_id;
 		} else {
 			return lock === actor_id;
 		}
@@ -433,8 +514,8 @@ function pass_lock(actor_id, lock) {
 	}
 }
 
-function pass_through(exit_obj) {
-	game_data.objects.hero.location = exit_obj.link;
+function pass_through(exit_obj, actor) {
+	actor.location = exit_obj.link;
 	exit_obj.visited = true;
 
 	game_data.meta.turns++;
