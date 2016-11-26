@@ -182,7 +182,8 @@ function visible_objects() {
 	var list = tag("dl");
 	
 	say(list, tag("dt", "You see:"));
-	say(list, tag("dd", object_list(find_objects_in(room_here()))));
+	if (room_has_light(room_here()))
+		say(list, tag("dd", object_list(find_objects_in(room_here()))));
 	say(list, tag("dt", "You are carrying:"));
 	say(list, tag("dd", object_list(find_objects_in("hero"))));
 	
@@ -196,6 +197,20 @@ function room_here() {
 		return here.location;
 	else
 		return me.location;
+}
+
+function room_has_light(room_id) {
+	if (!game_data.objects[room_id].dark)
+		return true;
+	var obj = find_objects_in("hero");
+	for (var i in obj)
+		if (obj[i].light)
+			return true;
+	var obj = find_objects_in(room_id);
+	for (var i in obj)
+		if (obj[i].light)
+			return true;
+	return false;
 }
 
 function find_objects_in(loc) {
@@ -414,14 +429,20 @@ function look() {
 	}
 
 	say(verso, tag("div", tag("b", here.name + vehicle_msg)));
-	if (!here.visited && here.initial)
-		say(verso, tag("p", here.initial));
-	else
-		say(verso, tag("p", here.description));
-
-	here.visited = true;
 	
-	say(verso, success_message(here));
+	if (room_has_light(room_here())) {
+		if (!here.visited && here.initial)
+			say(verso, tag("p", here.initial));
+		else
+			say(verso, tag("p", here.description));
+		here.visited = true;
+		say(verso, success_message(here));
+	} else {
+		if (here.failure)
+			say(verso, here.failure);
+		else
+			say(verso, "It's too dark to see much at all.");
+	}
 	say(verso, exit_list(me.location));
 	
 	if (here.ending)
@@ -450,11 +471,14 @@ function exit_list(room_id) {
 	} else {
 		var actor = "hero";
 	}
+	var is_dark = !room_has_light(room_id);
 		
 	for (var i in obj) {
 		if (obj[i].location !== room_id)
 			continue;
 		else if (obj[i].type !== "exit")
+			continue;
+		else if (is_dark && !obj[i].light)
 			continue;
 
 		var btn = exit_button(obj[i].name, i, actor);
