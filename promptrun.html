@@ -86,7 +86,7 @@
 
 <div class="page-frame">
  <div id="verso-page" class="page-content">
-  Welcome to Adventure Prompt, an experimental (as of 6 Nov 2016) engine for interactive fiction; this is the runner, or interpreter &mdash; the half that allows you to actually play games.
+  Welcome to Adventure Prompt, an experimental (as of 6 Nov 2016) engine for interactive fiction; this is the runner, or interpreter &mdash; the half that allows you to actually play games. You should be able to get some from the same place where you found this. Look for files with the .json extension.
  </div>
 </div>
 
@@ -178,12 +178,25 @@ function status_line() {
 	return line;
 }
 
-function visible_objects() {
+function refresh_view(verso_msg, recto_msg) {
+	verso.innerHTML = "";
+	say(verso, status_line());
+	if (verso_msg)
+		say(verso, verso_msg);
+	look();
+	
+	recto.innerHTML = "";
+	if (recto_msg)
+		say(recto, recto_msg);
+	say(recto, visible_objects(room_here()));
+}
+
+function visible_objects(room_id) {
 	var list = tag("dl");
 	
 	say(list, tag("dt", "You see:"));
-	if (room_has_light(room_here()))
-		say(list, tag("dd", object_list(find_objects_in(room_here()))));
+	if (room_has_light(room_id))
+		say(list, tag("dd", object_list(find_objects_in(room_id))));
 	say(list, tag("dt", "You are carrying:"));
 	say(list, tag("dd", object_list(find_objects_in("hero"))));
 	
@@ -291,49 +304,45 @@ function exit_button(label, obj_id, actor_id) {
 }
 
 function handle_look_at() {
-	var obj_id = this.getAttribute("data-target");
-	var obj = game_data.objects[obj_id];
-
 	game_data.meta.turns++;
-	verso.innerHTML = "";
-	say(verso, status_line());
-	look();
-	
-	recto.innerHTML = "";
+	var obj_id = this.getAttribute("data-target");
+	refresh_view(null, object_description(obj_id));
+}
+
+function object_description(obj_id) {
+	var obj = game_data.objects[obj_id];
+	var desc = tag("div");
 	if (!obj.visited && obj.initial)
-		say(recto, tag("p", obj.initial));
+		say(desc, tag("p", obj.initial));
 	else if (obj.description) {
-		say(recto, tag("p", obj.description));
+		say(desc, tag("p", obj.description));
 	} else {
-		say(recto, tag("p", "You see nothing special."));
+		say(desc, tag("p", "You see nothing special."));
 	}
-	say(recto, object_list(find_objects_in(obj_id)));
-	say(recto, visible_objects());
+	say(desc, object_list(find_objects_in(obj_id)));
+	return desc;
 }
 
 function handle_take() {
 	var obj_id = this.getAttribute("data-target");
 	var obj = game_data.objects[obj_id];
-	
-	game_data.meta.turns++;
-	verso.innerHTML = "";
-	say(verso, status_line());
-	look();
-	
-	recto.innerHTML = "";
+
 	if (pass_lock("hero", obj.lock)) {
+		score_object(obj_id);
 		obj.location = "hero";
 		obj.visited = true;
 		if (obj.success)
-			say(recto, tag("p", obj.success));
+			var msg = tag("p", obj.success);
 		else
-			say(recto, tag("p", "Taken."));
+			var msg = tag("p", "Taken.");
 	} else if (obj.failure) {
-		say(recto, tag("p", obj.failure));
+		var msg = tag("p", obj.failure);
 	} else {
-		say(recto, tag("p", "You can't seem to pick that up."));
+		var msg = tag("p", "You can't seem to pick that up.");
 	}
-	say(recto, visible_objects());
+	
+	game_data.meta.turns++;
+	refresh_view(null, msg);
 }
 
 function handle_drop() {
@@ -342,64 +351,55 @@ function handle_drop() {
 	var room_id = game_data.objects.hero.location;
 	var here = game_data.objects[room_id];
 
-	game_data.meta.turns++;
-	verso.innerHTML = "";
-	say(verso, status_line());
-	look();
-	
-	recto.innerHTML = "";
 	if (obj.sticky) {
 		if (obj.nodrop)
-			say(recto, tag("p", obj.nodrop));
+			var msg = tag("p", obj.nodrop);
 		else
-			say(recto, tag("p",
-				"You try to drop that, but can't seem to."));
+			var msg = tag("p",
+				"You try to drop that, but can't seem to.");
 	} else if (here.sticky) {
 		if (here.nodrop)
-			say(recto, tag("p", here.nodrop));
+			var msg = tag("p", here.nodrop);
 		else
-			say(recto, tag("p",
-				"You try to drop that, but can't seem to."));
+			var msg = tag("p",
+				"You try to drop that, but can't seem to.");
 	} else {
 		if (here.link)
 			obj.location = here.link;
 		else
 			obj.location = room_id;
 		if (obj.drop)
-			say(recto, tag("p", obj.drop));
+			var msg = tag("p", obj.drop);
 		else
-			say(recto, tag("p", "Dropped."));
+			var msg = tag("p", "Dropped.");
 	}
-	say(recto, visible_objects());
+
+	game_data.meta.turns++;
+	refresh_view(null, msg);
 }
 
 function handle_get_on() {
 	var obj_id = this.getAttribute("data-target");
 	var obj = game_data.objects[obj_id];
 
-	recto.innerHTML = "";
 	if (pass_lock("hero", obj.lock)) {
+		score_object(obj_id);
 		game_data.objects.hero.location = obj_id;
 		obj.visited = true;
 		if (obj.success)
-			say(recto, tag("p", obj.success));
+			var msg = tag("p", obj.success);
 		else
-			say(recto, tag("p",
-				"You get on the " + obj.name + "."));
+			var msg = tag("p",
+				"You get on the " + obj.name + ".");
 	} else if (obj.failure) {
-		say(recto, tag("p", obj.failure));
+		var msg = tag("p", obj.failure);
 	} else {
-		say(recto, tag("p",
-			"You can't seem to get on the " + obj.name + "."));
+		var msg = tag("p",
+			"You can't seem to get on the " + obj.name + ".");
 	}
-	say(recto, visible_objects());
 
-	// This must be done after the hero has boarded the vehicle,
-	// so that exit buttons are generated with the right actor.
 	game_data.meta.turns++;
-	verso.innerHTML = "";
-	say(verso, status_line());
-	look();
+	refresh_view(null, msg);
 }
 
 function handle_get_off() {
@@ -408,13 +408,7 @@ function handle_get_off() {
 	game_data.objects.hero.location = obj.location;
 
 	game_data.meta.turns++;
-	verso.innerHTML = "";
-	say(verso, status_line());
-	look();
-
-	recto.innerHTML = "";
-	say(recto, tag("p", "You get off the " + obj.name + "."));
-	say(recto, visible_objects());
+	refresh_view(null, tag("p", "You get off the " + obj.name + "."));
 }
 
 function look() {
@@ -539,18 +533,14 @@ function pass_lock(actor_id, lock) {
 }
 
 function pass_through(exit_obj, actor) {
+	// Rooms must be scored *before* entering them,
+	// or else the change won't register until next turn.
+	score_object(exit_obj.link);
 	actor.location = exit_obj.link;
 	exit_obj.visited = true;
 
 	game_data.meta.turns++;
-	score_object(exit_obj.link);
-	verso.innerHTML = "";
-	say(verso, status_line());
-	say(verso, tag("p", exit_obj.success));
-	look();
-	
-	recto.innerHTML = "";
-	say(recto, visible_objects());
+	refresh_view(tag("p", exit_obj.success));
 }
 
 function score_object(obj_id) {
@@ -563,13 +553,7 @@ function start_game() {
 	game_data.meta.turns = 0;
 	game_data.meta.score = 0;
 
-	verso.innerHTML = "";
-	say(verso, status_line());
-	say(verso, tag("p", game_data.config.banner));
-	look();
-	
-	recto.innerHTML = "";
-	say(recto, visible_objects());
+	refresh_view(tag("p", game_data.config.banner));
 	
 	wait_button.disabled = false;
 	restart_button.disabled = false;
@@ -613,13 +597,7 @@ window.addEventListener("load", function () {
 	
 	wait_button.addEventListener("click", function () {
 		game_data.meta.turns++;
-		verso.innerHTML = "";
-		say(verso, status_line());
-		say(verso, tag("p", "You wait. Time passes..."));
-		look();
-		
-		recto.innerHTML = "";
-		say(recto, visible_objects());
+		refresh_view(tag("p", "You wait. Time passes..."));
 	}, false);
 	
 	undo_button.addEventListener("click", function () {
