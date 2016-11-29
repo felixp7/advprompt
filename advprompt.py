@@ -77,8 +77,10 @@ The editor directly supports four main object types:
 
 To get other types, first `create` a thing, then `set` its type to one of:
 
-- `scenery`: these objects are part of the landscape and not meant to be
-  picked up. Additionally, if linked to somewhere else they act as an exit.
+- `scenery` objects are part of the landscape and not meant to be picked up.
+  Additionally, if linked to somewhere else they double as an exit;
+- `vehicle`: the hero can board such an object if they pass the lock. Once
+  in a vehicle, all exits treat it as the actor for traversal purposes.
 """
 
 help_text["identifiers"] = """
@@ -369,7 +371,7 @@ class Editor(cmd.Cmd):
 			elif args[0] == "here":
 				print("Nothing to do")
 			else:
-				print("No such object: {0}".format(args[1]))
+				print("No such object: {0}".format(args[0]))
 		elif args[0] in self.game["objects"]:
 			if args[1] in self.game["objects"]:
 				self.setprop(args[0], "location", args[1])
@@ -513,11 +515,13 @@ class Editor(cmd.Cmd):
 			else:
 				obj_id = args[1]
 			
-			if obj_id in self.game["objects"]:
+			if obj_id not in self.game["objects"]:
+				print("No such object: {0}.".format(obj_id))
+			elif args[0] not in self.game["objects"]:
+				print("No such object: {0}.".format(args[0]))
+			else:
 				self.setprop(args[0], "lock", args[1])
 				print("Object locked to given key.")
-			else:
-				print("No such object: {0}.".format(obj_id))
 		else:
 			self.setprop(args[0], "lock", {args[1]: args[2]})
 			self.modified = True
@@ -826,7 +830,7 @@ class Editor(cmd.Cmd):
 	def help_linking(self):
 		print(help_text["linking"])
 	
-	def help_locks(self):
+	def help_locking(self):
 		print("To be done.")
 	
 	def help_properties(self):
