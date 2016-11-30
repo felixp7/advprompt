@@ -285,6 +285,10 @@ function object_actions(obj_id, obj) {
 			else
 				list.push(action_button(
 					"get on", obj_id, handle_get_on));
+			break;
+		case "text":
+			list.push(action_button(
+				"read", obj_id, handle_read));
 	}
 	return list;
 }
@@ -373,6 +377,8 @@ function handle_drop() {
 			var msg = tag("p", obj.drop);
 		else
 			var msg = tag("p", "Dropped.");
+		if (here.drop)
+			say(msg, " " + here.drop);
 	}
 
 	game_data.meta.turns++;
@@ -410,6 +416,22 @@ function handle_get_off() {
 
 	game_data.meta.turns++;
 	refresh_view(null, tag("p", "You get off the " + obj.name + "."));
+}
+
+function handle_read() {
+	var obj_id = this.getAttribute("data-target");
+	var obj = game_data.objects[obj_id];
+	
+	game_data.meta.turns++;
+	if (room_has_light(room_here())) {
+		obj.visited = true;
+		if (obj.link)
+			game_data.objects[obj.link].dark = false;
+		var msg = obj.description;	
+	} else {
+		var msg = "It's too dark in here to read.";
+	}
+	refresh_view(null, tag("p", msg));
 }
 
 function look() {
@@ -473,6 +495,8 @@ function exit_list(room_id) {
 			continue;
 		else if (obj[i].type !== "exit")
 			continue;
+		else if (obj[i].dark)
+			continue;
 		else if (is_dark && !obj[i].light)
 			continue;
 
@@ -497,7 +521,9 @@ function handle_exit() {
 	} else if (pass_lock(actor_id, exit_obj.lock)) {
 		pass_through(exit_obj, actor);
 	} else {
-		say(verso, tag("p", exit_obj.failure));
+		var msg = tag("p", exit_obj.failure);
+		say(verso, msg);
+		msg.scrollIntoView();
 	}
 }
 
@@ -541,7 +567,10 @@ function pass_through(exit_obj, actor) {
 	exit_obj.visited = true;
 
 	game_data.meta.turns++;
-	refresh_view(tag("p", exit_obj.success));
+	refresh_view(tag("p", success_message(exit_obj)));
+	
+	if (exit_obj.ending)
+		end_game();
 }
 
 function score_object(obj_id) {
