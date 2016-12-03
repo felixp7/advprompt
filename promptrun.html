@@ -162,10 +162,12 @@ function edition_notice(metadata) {
 	page.className = "edition-notice";
 	say(page, tag("div", tag("b", metadata.title)));
 	say(page, tag("div", metadata.subtitle));
-	say(page, tag("p", metadata.author));
-	say(page, tag("p", metadata.date));
+	say(page, tag("p", metadata.author + "<br>" + metadata.date));
+	say(page, tag("p", metadata.genre));
+	say(page, tag("p", metadata.blurb));
 	say(page, tag("p", metadata.license));
 	say(page, tag("p", metadata.ifid));
+	say(page, tag("small", "Made with Adventure Prompt"));
 	return page;
 }
 
@@ -461,7 +463,9 @@ function look() {
 		else
 			say(verso, "It's too dark to see much at all.");
 	}
-	say(verso, exit_list(me.location));
+	
+	if (!here.ending)
+		say(verso, exit_list(me.location));
 }
 
 function success_message(obj) {
@@ -615,6 +619,10 @@ window.addEventListener("load", function () {
 				say(verso, edition_notice(game_data.meta));
 				recto.innerHTML = "";
 				say(recto, title_page(game_data.meta));
+				if (game_data.meta.language) {
+					verso.lang = game_data.meta.language;
+					recto.lang = game_data.meta.language;
+				}
 			} catch (e) {
 				console.log(e);
 				alert("Can't load story file. See console.");

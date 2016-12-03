@@ -14,6 +14,7 @@ except ImportError as e:
 import cmd
 import shlex
 import json
+import uuid
 
 app_banner = """
 Welcome to Adventure Prompt, a system for authoring interactive fiction
@@ -168,6 +169,29 @@ shown with appropriate formatting. Currently this only works for rooms
 and exits.
 """
 
+help_text["meta"] = """
+The Adventure Prompt story file format supports a variety of metadata.
+You can manipulate it with the `meta` command, in one of three forms:
+
+	meta			# Display all the metadata currently set.
+	meta <field>		# Delete given field from the metadata.
+	meta <field> <value>	# Set a new value for the given field.
+
+Currently the interpreter supports the following fields: title*, subtitle,
+author*, date, genre, blurb, license, ifid*, language:
+
+- the title and author should always be present; new stories get defaults;
+- the date (of first publication) should be a year, or else an ISO date in
+  yyyy-mm-dd format;
+- the language code (e.g. en-US) isn't shown to readers, but the interpreter
+  passes it on to the web browser;
+- the IFID (note: keep the field name in lower case) is a unique identifier
+  generated for each new story file; if you need another one for any reason,
+  enter the following command at the prompt:
+  
+	!print(str(uuid.uuid4()))
+"""
+
 def shell_parse(text):
 	try:
 		return shlex.split(text)
@@ -190,7 +214,11 @@ def parse_value(text):
 			return text
 
 def new_meta():
-	return {"title": "Untitled", "author": "Anomymous"}
+	return {
+		"title": "An Interactive Fiction",
+		"author": "Anomymous",
+		"ifid": str(uuid.uuid4())
+	}
 
 def new_config():
 	return {"banner": "", "max_score": 0, "use_score": True}
@@ -859,6 +887,9 @@ class Editor(cmd.Cmd):
 	
 	def help_visited(self):
 		print("To be done.")
+	
+	def help_meta(self):
+		print(help_text["meta"])
 
 if __name__ == "__main__":
 	editor = Editor()
