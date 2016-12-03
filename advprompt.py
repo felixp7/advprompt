@@ -164,7 +164,8 @@ The sticky flag applies to most types of objects:
 help_text["ending"] = """
 The game ends when an object with the `ending` flag set is successfully
 used by the player (see: success). The object's success message will be
-shown with appropriate formatting. Currently this only works for rooms.
+shown with appropriate formatting. Currently this only works for rooms
+and exits.
 """
 
 def shell_parse(text):
@@ -279,6 +280,8 @@ class Editor(cmd.Cmd):
 		where = self.game["objects"][room]
 		print("{0} (id: {1})".format(where["name"], room))
 		print(where["description"])
+		if "success" in where:
+			print(where["success"])
 		
 		allhere = self.find("location", room)
 
@@ -782,7 +785,10 @@ class Editor(cmd.Cmd):
 	
 	def do_shell(self, args):
 		"""Run Python code in a global context, for debugging."""
-		exec(args, globals())
+		try:
+			exec(args, globals())
+		except Exception as e:
+			print(e)
 	
 	def default(self, line):
 		args = shell_parse(line)

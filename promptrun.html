@@ -424,6 +424,7 @@ function handle_read() {
 	
 	game_data.meta.turns++;
 	if (room_has_light(room_here())) {
+		score_object(obj_id);
 		obj.visited = true;
 		if (obj.link)
 			game_data.objects[obj.link].dark = false;
@@ -461,9 +462,6 @@ function look() {
 			say(verso, "It's too dark to see much at all.");
 	}
 	say(verso, exit_list(me.location));
-	
-	if (here.ending)
-		end_game();
 }
 
 function success_message(obj) {
@@ -569,7 +567,7 @@ function pass_through(exit_obj, actor) {
 	game_data.meta.turns++;
 	refresh_view(tag("p", success_message(exit_obj)));
 	
-	if (exit_obj.ending)
+	if (exit_obj.ending || game_data.objects[exit_obj.link].ending)
 		end_game();
 }
 
