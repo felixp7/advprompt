@@ -216,7 +216,7 @@ def parse_value(text):
 def new_meta():
 	return {
 		"title": "An Interactive Fiction",
-		"author": "Anomymous",
+		"author": "Anonymous",
 		"ifid": str(uuid.uuid4())
 	}
 
