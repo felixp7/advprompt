@@ -82,17 +82,19 @@
  </style>
 </head>
 
-<body>
+<body role="document">
 
 <div class="page-frame">
- <div id="verso-page" class="page-content">
-  <p>Welcome to Adventure Prompt, an experimental (as of 6 Nov 2016) engine for interactive fiction; this is the runner, or interpreter &mdash; the half that allows you to actually play games. You should be able to get some from the same place where you found this. Look for files with the .json extension.
-  <p>If you want to create your own adventures, there is an the editor called <code>advprompt.py</code> that should be available from the same source.
+ <div id="verso-page" class="page-content" aria-live="polite">
+  <div role="contentinfo">
+   <p>Welcome to Adventure Prompt, an experimental (as of 6 Nov 2016) engine for interactive fiction; this is the runner, or interpreter &mdash; the half that allows you to actually play games. You should be able to get some from the same place where you found this. Look for files with the .json extension.
+   <p>If you want to create your own adventures, there is an the editor called <code>advprompt.py</code> that should be available from the same source.
+  </div>
  </div>
 </div>
 
 <div class="page-frame">
- <div id="recto-page" class="page-content">
+ <div id="recto-page" class="page-content" aria-live="polite">
   <div class="title-page">
    <h1>Adventure Prompt</h1>
    <p>an interactive fiction engine
@@ -108,7 +110,7 @@
  </div>
 </div>
 
-<div id="toolbar">
+<div id="toolbar" role="toolbar">
  <button type="button" id="wait-button" disabled>wait</button>
  <button type="button" id="undo-button" disabled>undo</button>
  <button type="button" id="restart-button" disabled>restart</button>
@@ -160,6 +162,7 @@ function title_page(metadata) {
 function edition_notice(metadata) {
 	var page = tag("div");
 	page.className = "edition-notice";
+	page.setAttribute("aria-role", "contentinfo");
 	say(page, tag("div", tag("b", metadata.title)));
 	say(page, tag("div", metadata.subtitle));
 	say(page, tag("p", metadata.author + "<br>" + metadata.date));
@@ -174,6 +177,7 @@ function edition_notice(metadata) {
 function status_line() {
 	var line = tag("p");
 	line.className = "status-line";
+	line.setAttribute("role", "status");
 	say(line, "Turns: " + game_data.meta.turns);
 	if (game_data.config.use_score)
 		say(line, " Score: " + game_data.meta.score
@@ -313,7 +317,10 @@ function exit_button(label, obj_id, actor_id) {
 function handle_look_at() {
 	game_data.meta.turns++;
 	var obj_id = this.getAttribute("data-target");
-	refresh_view(null, object_description(obj_id));
+	if (room_has_light(room_here()))
+		refresh_view(null, object_description(obj_id));
+	else
+		refresh_view(null, "It's too dark to see much at all.");
 }
 
 function object_description(obj_id) {
