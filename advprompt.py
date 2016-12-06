@@ -15,6 +15,7 @@ import cmd
 import shlex
 import json
 import uuid
+import glob
 
 app_banner = """
 Welcome to Adventure Prompt, a system for authoring interactive fiction
@@ -191,6 +192,14 @@ author*, date, genre, blurb, license, ifid*, language:
   
 	!print(str(uuid.uuid4()))
 """
+
+# List of recognized keywords, for autocompletion and validation.
+meta_keys = ["title", "subtitle", "author", "date",
+	"genre", "blurb", "license", "ifid", "language"]
+object_keys = ["type", "name", "description", "success", "failure",
+	"drop", "nodrop", "link", "location", "lock",
+	"dark", "sticky", "visited", "light", "ending"]
+config_keys = ["banner", "use_score", "max_score"]
 
 def shell_parse(text):
 	try:
@@ -731,9 +740,12 @@ class Editor(cmd.Cmd):
 			for i in meta:
 				print("{0}: {1}".format(i, meta[i]))
 		elif len(args) < 2:
-			del self.game["meta"][args[0]]
-			self.modified = True
-			print("Field deleted.")
+			if args[0] in self.game["meta"]:
+				del self.game["meta"][args[0]]
+				self.modified = True
+				print("Field deleted.")
+			else:
+				print("No such field; nothing to do.")
 		else:
 			self.game["meta"][args[0]] = args[1]
 			self.modified = True
@@ -839,6 +851,66 @@ class Editor(cmd.Cmd):
 			return self.do_go(args[0])
 		else:
 			print("Unknown command: {0}.".format(args[0]))
+	
+	def complete_name(self, text, line, begidx, endidx):
+		return [i for i in self.game["objects"] if i.startswith(text)]
+	
+	def complete_desc(self, text, line, begidx, endidx):
+		return [i for i in self.game["objects"] if i.startswith(text)]
+	
+	def complete_succ(self, text, line, begidx, endidx):
+		return [i for i in self.game["objects"] if i.startswith(text)]
+	
+	def complete_fail(self, text, line, begidx, endidx):
+		return [i for i in self.game["objects"] if i.startswith(text)]
+	
+	def complete_drop(self, text, line, begidx, endidx):
+		return [i for i in self.game["objects"] if i.startswith(text)]
+	
+	def complete_link(self, text, line, begidx, endidx):
+		return [i for i in self.game["objects"] if i.startswith(text)]
+	
+	def complete_unlink(self, text, line, begidx, endidx):
+		return [i for i in self.game["objects"] if i.startswith(text)]
+	
+	def complete_lock(self, text, line, begidx, endidx):
+		return [i for i in self.game["objects"] if i.startswith(text)]
+	
+	def complete_unlock(self, text, line, begidx, endidx):
+		return [i for i in self.game["objects"] if i.startswith(text)]
+	
+	def complete_clone(self, text, line, begidx, endidx):
+		return [i for i in self.game["objects"] if i.startswith(text)]
+	
+	def complete_look(self, text, line, begidx, endidx):
+		return [i for i in self.game["objects"] if i.startswith(text)]
+	
+	def complete_examine(self, text, line, begidx, endidx):
+		return [i for i in self.game["objects"] if i.startswith(text)]
+	
+	def complete_teleport(self, text, line, begidx, endidx):
+		return [i for i in self.game["objects"] if i.startswith(text)]
+	
+	def complete_recycle(self, text, line, begidx, endidx):
+		return [i for i in self.game["objects"] if i.startswith(text)]
+	
+	def complete_unrecycle(self, text, line, begidx, endidx):
+		return [i for i in self.trash if i.startswith(text)]
+	
+	def complete_find(self, text, line, begidx, endidx):
+		return [i for i in object_keys if i.startswith(text)]
+	
+	def complete_meta(self, text, line, begidx, endidx):
+		return [i for i in meta_keys if i.startswith(text)]
+	
+	def complete_config(self, text, line, begidx, endidx):
+		return [i for i in config_keys if i.startswith(text)]
+	
+	def complete_save(self, text, line, begidx, endidx):
+		return glob.glob(text + "*")
+	
+	def complete_restore(self, text, line, begidx, endidx):
+		return glob.glob(text + "*")
 	
 	def help_basics(self):
 		print(help_text["basics"])
