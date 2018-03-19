@@ -137,6 +137,32 @@ Most objects can be linked to others. What that means depends on the type:
   to reveal a secret passage.
 """
 
+help_text["locking"] = """
+Lock is the quick command to set the lock of an object. It looks like this:
+
+	lock object-id [lock-expression]
+
+where lock-expression is a special character followed by an object ID; the given object is called the key, even though it may not resemble one at all.
+
+- +X checks if X is carried by the player;
+- -X checks if X *isn't* carried by the player;
+- ?X checks if the player is X, or riding in vehicle X;
+- !X checks if the player is *not* (in vehicle) X;
+- @X checks if X has been visited;
+- ^X checks if X *hasn't* been visited;
+- #X checks if X isn't currently dark;
+- ~X checks if X *is* dark right now.
+
+When a lock is checked exactly depends on the object type:
+
+- for an exit, when the player tries to traverse it;
+- for a thing, when the player tries to pick it up;
+- for a vehicle, when the player tries to board it;
+- for an inscription, when the player tries to read it.
+
+In MU*s, locks also work for rooms, but that's not yet in Adventure Prompt.
+"""
+
 help_text["flags"] = """
 - dark
 - sticky
@@ -538,34 +564,36 @@ class Editor(cmd.Cmd):
 		args = shell_parse(args)
 		if len(args) < 1:
 			print('Usage 1: lock object-id')
-			print('Usage 2: lock object-id vehicleID')
-			print('Usage 2: lock object-id !vehicleID')
-			print('Usage 3: lock object-id +thingID')
-			print('Usage 4: lock object-id -thingID')
-			print('Usage 5: lock object-id <property> <value>')
+			print('Usage 2: lock object-id ?vehicleID')
+			print('Usage 3: lock object-id !vehicleID')
+			print('Usage 4: lock object-id +thingID')
+			print('Usage 5: lock object-id -thingID')
+			print('Usage 6: lock object-id @thingID')
+			print('Usage 7: lock object-id ^thingID')
+			print('Usage 8: lock object-id #thingID')
+			print('Usage 9: lock object-id ~thingID')
 		elif args[0] not in self.game["objects"]:
 			print("No such object: {0}.".format(args[1]))
 		elif len(args) < 2:
-			self.setprop(args[0], "lock", True)
+			self.setprop(args[0], "lock", "+" + args[0])
 			self.modified = True
 			print("Object locked unconditionally.")
 		elif len(args) < 3:
-			if args[1][0] in ["!", "+", "-"]:
-				obj_id = args[1][1:]
-			else:
-				obj_id = args[1]
+			keys = ["?", "!", "+", "-", "@", "^", "#", "~"]
+			key_id = args[1][0]
+			obj_id = args[1][1:]
 			
 			if obj_id not in self.game["objects"]:
 				print("No such object: {0}.".format(obj_id))
 			elif args[0] not in self.game["objects"]:
 				print("No such object: {0}.".format(args[0]))
+			elif key_id not in keys:
+				print("Bad key type: {0}.".format(key_id))
 			else:
 				self.setprop(args[0], "lock", args[1])
 				print("Object locked to given key.")
 		else:
-			self.setprop(args[0], "lock", {args[1]: args[2]})
-			self.modified = True
-			print("Object locked to property value.")
+			print("Too many lock expressions.")
 	
 	def do_unlock(self, args):
 		"""Remove any lock from the given object."""
@@ -933,11 +961,11 @@ class Editor(cmd.Cmd):
 	def help_exits(self):
 		print("To be done.")
 	
-	def help_linking(self):
+	def help_link(self):
 		print(help_text["linking"])
 	
-	def help_locking(self):
-		print("To be done.")
+	def help_lock(self):
+		print(help_text["locking"])
 	
 	def help_properties(self):
 		print(help_text["properties"])

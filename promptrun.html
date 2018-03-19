@@ -6,31 +6,26 @@
  <style>
 	body {
 		Font-family: serif;
-		Font-size: 16pt;
+		Font-size: 14pt;
 		Color: black;
 		Background-color: tan;
 		Margin: 0;
 		Padding: 0;
-		Position: fixed;
-		Top: 0;
-		Left: 0;
-		Right: 0;
-		Bottom: 0;
 	}
 	
 	h1, h2 { Font-family: sans-serif; }
 	
-	.page-frame {
-		Width: 50%;
-		Height: 90%;
-		Float: left;
+	.book {
+		Display: table;
+		Width: 100%;
+		Border-spacing: 1em;
 	}
 	
-	.page-content {
-		Height: 90%;
+	.page-frame {
+		Display: table-cell;
+		Width: 50%;
 		Margin: 1em;
 		Padding: 1em;
-		Overflow: auto;
 		Line-height: 1.5em;
 		/*Text-align: justify;*/
 		Background-color: white;
@@ -38,12 +33,13 @@
 	}
 	
 	#toolbar {
-		Position: fixed;
-		Bottom: 0;
-		Width: 60%;
-		Left: 20%;
-		Padding: 0.5ex 0;
+		Padding: 1ex;
 		Text-align: center;
+		Color: white;
+		Background-color: black;
+		Font-weight: bold;
+		Font-family: sans-serif;
+		Font-size: 12pt;
 	}
 	
 	.page-content p { Text-indent: 3ex; }
@@ -76,13 +72,30 @@
 		Font-weight: bold;
 		Font-family: monospace;
 		Font-size: 12pt;
+		Padding-left: 1ex;
+		Padding-right: 1ex;
 	}
+	dd { Margin-left: 1em; }
+	dd ul { padding-left: 1em; }
 	
 	.status-line { Text-align: right; }
  </style>
 </head>
 
 <body role="document">
+
+<div id="toolbar" role="toolbar">
+ <button type="button" id="save-button" disabled>save</button>
+    <label>
+     Pick a story file from your computer:
+     <input type="file" id="local-file" accept="application/json">
+    </label>
+ <!--<button type="button" id="wait-button" disabled>wait</button>-->
+ <!--<button type="button" id="undo-button" disabled>undo</button>-->
+ <button type="button" id="restart-button" disabled>restart</button>
+</div>
+
+<div class="book" role="main">
 
 <div class="page-frame">
  <div id="verso-page" class="page-content" aria-live="polite">
@@ -100,20 +113,10 @@
    <p>an interactive fiction engine
    <p>by
    <p><b>Felix Pleşoianu</b>
-   <form id="file-browser">
-    <label>
-     Pick a story file from your computer:
-     <input type="file" id="local-file">
-    </label>
-   </form>
   </div>
  </div>
 </div>
 
-<div id="toolbar" role="toolbar">
- <button type="button" id="wait-button" disabled>wait</button>
- <button type="button" id="undo-button" disabled>undo</button>
- <button type="button" id="restart-button" disabled>restart</button>
 </div>
 
 <script>
@@ -178,10 +181,15 @@ function status_line() {
 	var line = tag("p");
 	line.className = "status-line";
 	line.setAttribute("role", "status");
-	say(line, "Turns: " + game_data.meta.turns);
-	if (game_data.config.use_score)
-		say(line, " Score: " + game_data.meta.score
+	if (game_data.config.use_score) {
+		var score = tag("span");
+		score.style.float = "left";
+		say(score, " Score: " + game_data.meta.score
 			+ "/" + (game_data.config.max_score || "?"));
+		say(line, score);
+		
+	}
+	say(line, "Moves: " + game_data.meta.turns);
 	return line;
 }
 
@@ -201,6 +209,8 @@ function refresh_view(verso_msg, recto_msg) {
 function visible_objects(room_id) {
 	var list = tag("dl");
 	
+	say(list, tag("dt", game_data.objects.hero.name));
+	say(list, tag("dd", game_data.objects.hero.description));
 	say(list, tag("dt", "You see:"));
 	if (room_has_light(room_id))
 		say(list, tag("dd", object_list(find_objects_in(room_id))));
@@ -489,7 +499,7 @@ function success_message(obj) {
 }
 
 function exit_list(room_id) {
-	var list = tag("div", "Exits: ");
+	var list = tag("div", "Which way now? ");
 	var obj = game_data.objects;
 	if (obj[room_id].type === "vehicle") {
 		var actor = room_id;
@@ -539,32 +549,22 @@ function handle_exit() {
 function pass_lock(actor_id, lock) {
 	if (lock === undefined) {
 		return true;
-	} else if (lock === true) {
-		return false;
 	} else if (typeof lock === "string") {
-		if (lock[0] === "+") {
-			var key_id = lock.substr(1);
-			var key = game_data.objects[key_id];
-			return key.location === actor_id;
-		} else if (lock[0] === "-") {
-			var key_id = lock.substr(1);
-			var key = game_data.objects[key_id];
-			return key.location !== actor_id;
-		} else if (lock[0] === "!") {
-			var key_id = lock.substr(1);
-			return key_id !== actor_id;
-		} else {
-			return lock === actor_id;
+		var key_id = lock.substr(1);
+		var key = game_data.objects[key_id];
+		switch (lock[0]) {
+			case "+": return key.location === actor_id;
+			case "-": return key.location !== actor_id;
+			case "?": return key_id === actor_id;
+			case "!": return key_id !== actor_id;
+			case "@": return key.visited;
+			case "^": return !key.visited;
+			case "#": return !key.dark;
+			case "~": return key.dark;
+			default: throw new Error("Bad lock type: " + lock[0]);
 		}
-	} else if (typeof lock === "object") {
-		var objs = game_data.objects
-		for (var i in find_objects_in(actor_id)) {
-			for (var j in lock) {
-				if (objs[i][j] === lock[j])
-					return true;
-			}
-		}
-		return false;
+	} else {
+		throw new Error("Bad lock: " + lock.toString());
 	}
 }
 
@@ -594,7 +594,7 @@ function start_game() {
 
 	refresh_view(tag("p", game_data.config.banner));
 	
-	wait_button.disabled = false;
+	//wait_button.disabled = false;
 	restart_button.disabled = false;
 }
 
@@ -620,6 +620,8 @@ function show_metadata() {
 }
 
 window.addEventListener("load", function () {
+	"use strict";
+	
 	verso = document.getElementById("verso-page");
 	recto = document.getElementById("recto-page");
 	
@@ -644,14 +646,14 @@ window.addEventListener("load", function () {
 		reader.readAsText(file);
 	}, false);
 	
-	wait_button.addEventListener("click", function () {
+	/*wait_button.addEventListener("click", function () {
 		game_data.meta.turns++;
 		refresh_view(tag("p", "You wait. Time passes..."));
 	}, false);
 	
 	undo_button.addEventListener("click", function () {
 		
-	}, false);
+	}, false);*/
 	
 	restart_button.addEventListener("click", function () {
 		game_data = JSON.parse(game_text);
