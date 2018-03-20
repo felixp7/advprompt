@@ -34,13 +34,14 @@
 	
 	#toolbar {
 		Padding: 1ex;
-		Text-align: center;
+		Text-align: right;
 		Color: white;
 		Background-color: black;
 		Font-weight: bold;
 		Font-family: sans-serif;
 		Font-size: 12pt;
 	}
+	#toolbar label { Float: left; Margin: 1ex; }
 	
 	.page-content p { Text-indent: 3ex; }
 	.title-page p, .edition-notice p { Text-indent: 0; }
@@ -85,11 +86,11 @@
 <body role="document">
 
 <div id="toolbar" role="toolbar">
+ <label>
+  Pick a story file from your computer:
+  <input type="file" id="local-file" accept="application/json">
+ </label>
  <button type="button" id="save-button" disabled>save</button>
-    <label>
-     Pick a story file from your computer:
-     <input type="file" id="local-file" accept="application/json">
-    </label>
  <!--<button type="button" id="wait-button" disabled>wait</button>-->
  <!--<button type="button" id="undo-button" disabled>undo</button>-->
  <button type="button" id="restart-button" disabled>restart</button>
@@ -126,7 +127,7 @@ var game_data = null;
 var verso;
 var recto;
 
-var wait_button, undo_button, restart_button;
+var wait_button, undo_button, restart_button, save_button;
 
 function say(page, content) {
 	if (typeof content === "string")
@@ -596,6 +597,7 @@ function start_game() {
 	
 	//wait_button.disabled = false;
 	restart_button.disabled = false;
+	save_button.disabled = false;
 }
 
 function end_game() {
@@ -625,9 +627,14 @@ window.addEventListener("load", function () {
 	verso = document.getElementById("verso-page");
 	recto = document.getElementById("recto-page");
 	
-	wait_button = document.getElementById("wait-button");
-	undo_button = document.getElementById("undo-button");
+	//wait_button = document.getElementById("wait-button");
+	//undo_button = document.getElementById("undo-button");
 	restart_button = document.getElementById("restart-button");
+	save_button = document.getElementById("save-button");
+
+	// Firefox "helpfully" remembers the wrong state on page reload.
+	restart_button.disabled = true;	
+	save_button.disabled = true;	
 
 	var input = document.getElementById("local-file");
 	input.addEventListener("change", function () {
@@ -637,13 +644,33 @@ window.addEventListener("load", function () {
 			try {
 				game_text = reader.result;
 				game_data = JSON.parse(reader.result);
-				show_metadata();
+				if (game_data.meta.turns) {
+					refresh_view();
+					restart_button.disabled = false;	
+					save_button.disabled = false;	
+				} else {
+					show_metadata();
+				}
 			} catch (e) {
 				console.log(e);
 				alert("Can't load story file. See console.");
 			}
 		};
 		reader.readAsText(file);
+	}, false);
+	
+	save_button.addEventListener("click", function () {
+		if (window.File !== undefined) {
+			var save_data = JSON.stringify(game_data);
+			var save_file = new File([save_data], "save.json", {
+				"type": "application/octet-stream"
+			});
+			var url = URL.createObjectURL(save_file);
+			window.location.assign(url);
+			URL.revokeObjectURL(url);
+		} else {
+			alert("Can't save game in this browser, sorry.");
+		}
 	}, false);
 	
 	/*wait_button.addEventListener("click", function () {

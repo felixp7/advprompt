@@ -6,31 +6,26 @@
  <style>
 	body {
 		Font-family: serif;
-		Font-size: 16pt;
+		Font-size: 14pt;
 		Color: black;
 		Background-color: tan;
 		Margin: 0;
 		Padding: 0;
-		Position: fixed;
-		Top: 0;
-		Left: 0;
-		Right: 0;
-		Bottom: 0;
 	}
 	
 	h1, h2 { Font-family: sans-serif; }
 	
-	.page-frame {
-		Width: 50%;
-		Height: 90%;
-		Float: left;
+	.book {
+		Display: table;
+		Width: 100%;
+		Border-spacing: 1em;
 	}
 	
-	.page-content {
-		Height: 90%;
+	.page-frame {
+		Display: table-cell;
+		Width: 50%;
 		Margin: 1em;
 		Padding: 1em;
-		Overflow: auto;
 		Line-height: 1.5em;
 		/*Text-align: justify;*/
 		Background-color: white;
@@ -38,12 +33,13 @@
 	}
 	
 	#toolbar {
-		Position: fixed;
-		Bottom: 0;
-		Width: 60%;
-		Left: 20%;
-		Padding: 0.5ex 0;
+		Padding: 1ex;
 		Text-align: center;
+		Color: white;
+		Background-color: black;
+		Font-weight: bold;
+		Font-family: sans-serif;
+		Font-size: 12pt;
 	}
 	
 	.page-content p { Text-indent: 3ex; }
@@ -76,13 +72,30 @@
 		Font-weight: bold;
 		Font-family: monospace;
 		Font-size: 12pt;
+		Padding-left: 1ex;
+		Padding-right: 1ex;
 	}
+	dd { Margin-left: 1em; }
+	dd ul { padding-left: 1em; }
 	
 	.status-line { Text-align: right; }
  </style>
 </head>
 
 <body role="document">
+
+<div id="toolbar" role="toolbar">
+ <button type="button" id="save-button" disabled>save</button>
+    <label>
+     Pick a story file from your computer:
+     <input type="file" id="local-file" accept="application/json">
+    </label>
+ <!--<button type="button" id="wait-button" disabled>wait</button>-->
+ <!--<button type="button" id="undo-button" disabled>undo</button>-->
+ <button type="button" id="restart-button" disabled>restart</button>
+</div>
+
+<div class="book" role="main">
 
 <div class="page-frame">
  <div id="verso-page" class="page-content" aria-live="polite">
@@ -100,25 +113,15 @@
    <p>an interactive fiction engine
    <p>by
    <p><b>Felix Pleşoianu</b>
-   <form id="file-browser">
-    <label>
-     Pick a story file from your computer:
-     <input type="file" id="local-file">
-    </label>
-   </form>
   </div>
  </div>
 </div>
 
-<div id="toolbar" role="toolbar">
- <button type="button" id="wait-button" disabled>wait</button>
- <button type="button" id="undo-button" disabled>undo</button>
- <button type="button" id="restart-button" disabled>restart</button>
 </div>
 
 <script>
 var game_text = "{}";
-var game_data = {"config": {"use_score": true, "banner": "It's so close to the road, yet so far from civilization, and nobody seems to know much about it. It's been taunting you for months. But its secrets will not last much longer. You are ready.", "max_score": 25.0}, "objects": {"map": {"score": 5.0, "description": "The paint is faded, and the lines shaky, but the map can only depict the cave system. You recognize the entrance tunnel and this room. A certain passage off a grand hall is clearly marked.", "name": "mural map", "location": "aerie", "type": "text", "link": "low-cave-nw"}, "up-cave-u": {"location": "up-cave", "type": "exit", "name": "up", "link": "aerie"}, "up-cave-s": {"location": "up-cave", "type": "exit", "light": true, "name": "south", "link": "lbank"}, "low-cave-u": {"lock": "-chest", "name": "up", "location": "low-cave", "type": "exit", "link": "up-cave", "failure": "No way you're going to climb a rope while carrying a treasure chest."}, "low-cave-nw": {"location": "low-cave", "type": "exit", "name": "northwest", "link": "nook", "dark": true}, "roadside-n": {"location": "roadside", "type": "exit", "name": "north", "link": "rbank"}, "aerie-d": {"location": "aerie", "type": "exit", "name": "down", "link": "up-cave"}, "cave-m": {"location": "lbank", "type": "scenery", "description": "", "name": "cave mouth", "link": "up-cave"}, "rbank-s": {"lock": "!boat", "name": "south", "location": "rbank", "type": "exit", "link": "roadside", "failure": "You can't exactly row a boat up a rocky trail."}, "up-cave-d": {"lock": "-lantern", "name": "down", "location": "up-cave", "type": "exit", "link": "low-cave", "failure": "No way you're climbing down a rope with lantern in hand."}, "tentflap": {"description": "A small but sturdy triangle tent, its canvas brightly colored.", "name": "your tent", "success": "You bend down and crawl into the tent.", "location": "rbank", "type": "scenery", "link": "tent"}, "chest": {"score": 10.0, "type": "thing", "description": "It's a treasure chest just like in pirate movies, except very small and light. Sturdy, too, despite that.", "name": "Treasure chest", "location": "nook"}, "low-cave": {"description": "Countless points of light dot the high ceiling of the cavern, framing the jagged teeth of stalactites and stalagmites in the background. An underground lake take up most of the floor, leaving only a narrow ledge along what must be the south side. Off to the east, all that water flows noisily down a tunnel, while in the opposite direction lies a maze of confusing passages. But there's no way to miss the rope climbing upwards through a hole.", "name": "Lower cavern", "score": 5.0, "type": "room", "drop": "There's a splash in the water below. As you squint, a slightly darker spot is being carried east by the current, but that's probably your imagination.", "link": "karst"}, "aerie": {"type": "room", "description": "It's a tall, narrow room where every wall bears the mark of tools, and fossilized wood splinters crunch underfoot. High above, cracks in the rock admit slivers of daylight; the air is dry, and not as cold as down in the tunnel.", "name": "Aerie"}, "roadside": {"type": "room", "description": "You parked your SUV not far from the road, not hidden, but discreetly. Seldom does the growl of a passing car break up the wind singing in the treetops, but the smell of exhaust persists, clashing with the perfume of green needles.", "name": "Roadside"}, "lantern": {"score": 5.0, "description": "It's a heavy-duty electric lantern. You changed the batteries just this morning.", "name": "Electric lantern", "location": "tent", "type": "thing", "initial": "Your heavy-duty electric lantern is hanging from a hook.", "light": true}, "roadside-se": {"lock": "+chest", "name": "pack up", "success": "You unlock the car, and proceed to hide your finding at the bottom of the spacious trunk. Opening it can wait. When you look up again, someone else is there...", "location": "roadside", "type": "exit", "link": "the-end", "failure": "You're too ambitious to go home without any treasure from the cave."}, "up-cave": {"description": "Daylight duly dwindles away from the cave mouth. Cold moisture in the air clings to the skin; the walls shine wetly in the electric glare.", "name": "Upper cavern", "success": "You forgot your rope in the SUV, but there is one already, clinging to the floor of an abrupt slide into darkness. Rough steps climb around a pillar in which someone carved a little shelf.", "type": "room", "dark": true, "failure": "Daylight duly dwindles away from the cave mouth, as the tunnel twists and turns. Soon, your own echoing footsteps are the only guide in the darkness."}, "tent-o": {"location": "tent", "type": "exit", "name": "out", "link": "rbank"}, "the-end": {"type": "room", "description": "\"Congratulations!\" shouts the funnily-dressed man who just climbed out of a van. You never heard it coming. \"You are the first winner of our new reality show! I would invite you to claim your prize, but you already have it. Tell me, how does it feel?\" The woman in a business suit who is with him flashes an embarrassed smile. \"We should probably mention that you are on camera.\"", "name": "Surprise!", "success": "And that's when things started taking a turn for the weirder...", "ending": true}, "ball": {"location": "karst", "type": "thing", "description": "It's damp, but otherwise in decent condition, everything considered.", "name": "tennis ball", "drop": "You let go of the ball."}, "hero": {"location": "rbank", "type": "actor", "description": "As good-looking as ever.", "name": "me"}, "tent": {"type": "room", "description": "The tent has room for little more than a bedroll, but then your SUV isn't far away either. It will do for a day or two.", "name": "Your tent"}, "rbank-ne": {"lock": "boat", "name": "northeast", "location": "rbank", "type": "exit", "link": "lbank", "failure": "Swimming in a cold mountain river? No thanks."}, "lbank-sw": {"lock": "boat", "name": "southwest", "location": "lbank", "type": "exit", "link": "rbank", "failure": "Swimming in a cold mountain river? No thanks."}, "nook-se": {"location": "nook", "type": "exit", "name": "southeast", "link": "low-cave"}, "karst": {"type": "room", "description": "Water gushes out through a crevice in the mountain side, and pools into a small basin before flowing into the river at the far end. Fallen branches form an impromptu net that catches all kinds of floating debris, not far from the path.", "name": "Karst spring"}, "boat": {"location": "rbank", "type": "vehicle", "description": "It's a small inflatable row boat that cost you an equally small fortune. But no matter, soon it will all pay off.", "name": "inflatable boat"}, "lbank-e": {"lock": "!boat", "name": "east", "location": "lbank", "type": "exit", "link": "karst", "failure": "You can't exactly row a boat up a rocky trail."}, "karst-w": {"location": "karst", "type": "exit", "name": "west", "link": "lbank"}, "lbank": {"type": "room", "description": "The ground raises abruptly away from the bank, unbroken but for a hole in the mountainside not far up. Towards the east, a narrow footpath follows the water downstream. Moist ground yields underfoot with every step, and the sound of running water echoes from all sides.", "name": "Left riverbank"}, "rbank": {"type": "room", "description": "The pine trees shy away from the bank here, leaving enough room to pitch a tent. The riverbed is broad and deep, making the water calm enough to row safely despite the strong current. Straight across, the cave mouth beckons with its darkness-shrouded mysteries, while behind the tent to the south a rocky trail vanishes into the forest.", "name": "Right riverbank"}, "nook": {"type": "room", "description": "Broken slabs of rock leaning against the wall and each other mask a recess right off the main cavern. Here and there, puddles of bone-chilling water on the uneven ground shimmer eerily, reflecting the fake stars above.", "name": "Hidden nook"}}, "meta": {"license": "This work is free to share and reuse under the Artistic License 2.0", "title": "Secret of the Starry Depths", "ifid": "1082e865-3fd0-46f5-b7f1-ac904eb57162", "author": "Felix Ple\u015foianu", "genre": "Surreal", "subtitle": "An Interactive Showcase", "language": "en-US", "blurb": "Secret of the Starry Depths is a short piece meant to showcase the main features of the Adventure Prompt authoring system for interactive fiction.", "date": "2016"}};
+var game_data = {"config": {"use_score": true, "banner": "It's so close to the road, yet so far from civilization, and nobody seems to know much about it. It's been taunting you for months. But its secrets will not last much longer. You are ready.", "max_score": 25.0}, "objects": {"map": {"score": 5.0, "description": "The paint is faded, and the lines shaky, but the map can only depict the cave system. You recognize the entrance tunnel and this room. A certain passage off a grand hall is clearly marked.", "name": "mural map", "location": "aerie", "type": "text", "link": "low-cave-nw"}, "up-cave-u": {"location": "up-cave", "type": "exit", "name": "up", "link": "aerie"}, "up-cave-s": {"location": "up-cave", "type": "exit", "light": true, "name": "south", "link": "lbank"}, "low-cave-u": {"lock": "-chest", "name": "up", "location": "low-cave", "type": "exit", "link": "up-cave", "failure": "No way you're going to climb a rope while carrying a treasure chest."}, "low-cave-nw": {"location": "low-cave", "type": "exit", "name": "northwest", "link": "nook", "dark": true}, "roadside-n": {"location": "roadside", "type": "exit", "name": "north", "link": "rbank"}, "aerie-d": {"location": "aerie", "type": "exit", "name": "down", "link": "up-cave"}, "cave-m": {"location": "lbank", "type": "scenery", "description": "", "name": "cave mouth", "link": "up-cave"}, "rbank-s": {"lock": "!boat", "name": "south", "location": "rbank", "type": "exit", "link": "roadside", "failure": "You can't exactly row a boat up a rocky trail."}, "up-cave-d": {"lock": "-lantern", "name": "down", "location": "up-cave", "type": "exit", "link": "low-cave", "failure": "No way you're climbing down a rope with lantern in hand."}, "tentflap": {"description": "A small but sturdy triangle tent, its canvas brightly colored.", "name": "your tent", "success": "You bend down and crawl into the tent.", "location": "rbank", "type": "scenery", "link": "tent"}, "chest": {"score": 10.0, "type": "thing", "description": "It's a treasure chest just like in pirate movies, except very small and light. Sturdy, too, despite that.", "name": "Treasure chest", "location": "nook"}, "low-cave": {"description": "Countless points of light dot the high ceiling of the cavern, framing the jagged teeth of stalactites and stalagmites in the background. An underground lake take up most of the floor, leaving only a narrow ledge along what must be the south side. Off to the east, all that water flows noisily down a tunnel, while in the opposite direction lies a maze of confusing passages. But there's no way to miss the rope climbing upwards through a hole.", "name": "Lower cavern", "score": 5.0, "type": "room", "drop": "There's a splash in the water below. As you squint, a slightly darker spot is being carried east by the current, but that's probably your imagination.", "link": "karst"}, "aerie": {"type": "room", "description": "It's a tall, narrow room where every wall bears the mark of tools, and fossilized wood splinters crunch underfoot. High above, cracks in the rock admit slivers of daylight; the air is dry, and not as cold as down in the tunnel.", "name": "Aerie"}, "roadside": {"type": "room", "description": "You parked your SUV not far from the road, not hidden, but discreetly. Seldom does the growl of a passing car break up the wind singing in the treetops, but the smell of exhaust persists, clashing with the perfume of green needles.", "name": "Roadside"}, "lantern": {"score": 5.0, "description": "It's a heavy-duty electric lantern. You changed the batteries just this morning.", "name": "Electric lantern", "location": "tent", "type": "thing", "initial": "Your heavy-duty electric lantern is hanging from a hook.", "light": true}, "roadside-se": {"lock": "+chest", "name": "pack up", "success": "You unlock the car, and proceed to hide your finding at the bottom of the spacious trunk. Opening it can wait. When you look up again, someone else is there...", "location": "roadside", "type": "exit", "link": "the-end", "failure": "You're too ambitious to go home without any treasure from the cave."}, "up-cave": {"description": "Daylight duly dwindles away from the cave mouth. Cold moisture in the air clings to the skin; the walls shine wetly in the electric glare.", "name": "Upper cavern", "success": "You forgot your rope in the SUV, but there is one already, clinging to the floor of an abrupt slide into darkness. Rough steps climb around a pillar in which someone carved a little shelf.", "type": "room", "dark": true, "failure": "Daylight duly dwindles away from the cave mouth, as the tunnel twists and turns. Soon, your own echoing footsteps are the only guide in the darkness."}, "tent-o": {"location": "tent", "type": "exit", "name": "out", "link": "rbank"}, "the-end": {"type": "room", "description": "\"Congratulations!\" shouts the funnily-dressed man who just climbed out of a van. You never heard it coming. \"You are the first winner of our new reality show! I would invite you to claim your prize, but you already have it. Tell me, how does it feel?\" The woman in a business suit who is with him flashes an embarrassed smile. \"We should probably mention that you are on camera.\"", "name": "Surprise!", "success": "And that's when things started taking a turn for the weirder...", "ending": true}, "ball": {"location": "karst", "type": "thing", "description": "It's damp, but otherwise in decent condition, everything considered.", "name": "tennis ball", "drop": "You let go of the ball."}, "hero": {"location": "rbank", "type": "actor", "description": "Look at you, all kitted out in the best gear money can buy. (Not that you know how to use half of it, but shush!) Too bad there's no-one around to admire you.", "name": "A proud mountaineer"}, "tent": {"type": "room", "description": "The tent has room for little more than a bedroll, but then your SUV isn't far away either. It will do for a day or two.", "name": "Your tent"}, "rbank-ne": {"lock": "?boat", "name": "northeast", "location": "rbank", "type": "exit", "link": "lbank", "failure": "Swimming in a cold mountain river? No thanks."}, "lbank-sw": {"lock": "?boat", "name": "southwest", "location": "lbank", "type": "exit", "link": "rbank", "failure": "Swimming in a cold mountain river? No thanks."}, "nook-se": {"location": "nook", "type": "exit", "name": "southeast", "link": "low-cave"}, "karst": {"type": "room", "description": "Water gushes out through a crevice in the mountain side, and pools into a small basin before flowing into the river at the far end. Fallen branches form an impromptu net that catches all kinds of floating debris, not far from the path.", "name": "Karst spring"}, "boat": {"location": "rbank", "type": "vehicle", "description": "It's a small inflatable row boat that cost you an equally small fortune. But no matter, soon it will all pay off.", "name": "inflatable boat"}, "lbank-e": {"lock": "!boat", "name": "east", "location": "lbank", "type": "exit", "link": "karst", "failure": "You can't exactly row a boat up a rocky trail."}, "karst-w": {"location": "karst", "type": "exit", "name": "west", "link": "lbank"}, "lbank": {"type": "room", "description": "The ground raises abruptly away from the bank, unbroken but for a hole in the mountainside not far up. Towards the east, a narrow footpath follows the water downstream. Moist ground yields underfoot with every step, and the sound of running water echoes from all sides.", "name": "Left riverbank"}, "rbank": {"type": "room", "description": "The pine trees shy away from the bank here, leaving enough room to pitch a tent. The riverbed is broad and deep, making the water calm enough to row safely despite the strong current. Straight across, the cave mouth beckons with its darkness-shrouded mysteries, while behind the tent to the south a rocky trail vanishes into the forest.", "name": "Right riverbank"}, "nook": {"type": "room", "description": "Broken slabs of rock leaning against the wall and each other mask a recess right off the main cavern. Here and there, puddles of bone-chilling water on the uneven ground shimmer eerily, reflecting the fake stars above.", "name": "Hidden nook"}}, "meta": {"license": "This work is free to share and reuse under the Artistic License 2.0", "title": "Secret of the Starry Depths", "ifid": "1082e865-3fd0-46f5-b7f1-ac904eb57162", "author": "Felix Ple\u015foianu", "genre": "Surreal", "subtitle": "An Interactive Showcase", "language": "en-US", "blurb": "Secret of the Starry Depths is a short piece meant to showcase the main features of the Adventure Prompt authoring system for interactive fiction.", "date": "2016"}};
 
 var verso;
 var recto;
@@ -178,10 +181,15 @@ function status_line() {
 	var line = tag("p");
 	line.className = "status-line";
 	line.setAttribute("role", "status");
-	say(line, "Turns: " + game_data.meta.turns);
-	if (game_data.config.use_score)
-		say(line, " Score: " + game_data.meta.score
+	if (game_data.config.use_score) {
+		var score = tag("span");
+		score.style.float = "left";
+		say(score, " Score: " + game_data.meta.score
 			+ "/" + (game_data.config.max_score || "?"));
+		say(line, score);
+		
+	}
+	say(line, "Moves: " + game_data.meta.turns);
 	return line;
 }
 
@@ -201,6 +209,8 @@ function refresh_view(verso_msg, recto_msg) {
 function visible_objects(room_id) {
 	var list = tag("dl");
 	
+	say(list, tag("dt", game_data.objects.hero.name));
+	say(list, tag("dd", game_data.objects.hero.description));
 	say(list, tag("dt", "You see:"));
 	if (room_has_light(room_id))
 		say(list, tag("dd", object_list(find_objects_in(room_id))));
@@ -489,7 +499,7 @@ function success_message(obj) {
 }
 
 function exit_list(room_id) {
-	var list = tag("div", "Exits: ");
+	var list = tag("div", "Which way now? ");
 	var obj = game_data.objects;
 	if (obj[room_id].type === "vehicle") {
 		var actor = room_id;
@@ -539,32 +549,22 @@ function handle_exit() {
 function pass_lock(actor_id, lock) {
 	if (lock === undefined) {
 		return true;
-	} else if (lock === true) {
-		return false;
 	} else if (typeof lock === "string") {
-		if (lock[0] === "+") {
-			var key_id = lock.substr(1);
-			var key = game_data.objects[key_id];
-			return key.location === actor_id;
-		} else if (lock[0] === "-") {
-			var key_id = lock.substr(1);
-			var key = game_data.objects[key_id];
-			return key.location !== actor_id;
-		} else if (lock[0] === "!") {
-			var key_id = lock.substr(1);
-			return key_id !== actor_id;
-		} else {
-			return lock === actor_id;
+		var key_id = lock.substr(1);
+		var key = game_data.objects[key_id];
+		switch (lock[0]) {
+			case "+": return key.location === actor_id;
+			case "-": return key.location !== actor_id;
+			case "?": return key_id === actor_id;
+			case "!": return key_id !== actor_id;
+			case "@": return key.visited;
+			case "^": return !key.visited;
+			case "#": return !key.dark;
+			case "~": return key.dark;
+			default: throw new Error("Bad lock type: " + lock[0]);
 		}
-	} else if (typeof lock === "object") {
-		var objs = game_data.objects
-		for (var i in find_objects_in(actor_id)) {
-			for (var j in lock) {
-				if (objs[i][j] === lock[j])
-					return true;
-			}
-		}
-		return false;
+	} else {
+		throw new Error("Bad lock: " + lock.toString());
 	}
 }
 
@@ -594,7 +594,7 @@ function start_game() {
 
 	refresh_view(tag("p", game_data.config.banner));
 	
-	wait_button.disabled = false;
+	//wait_button.disabled = false;
 	restart_button.disabled = false;
 }
 
@@ -620,6 +620,8 @@ function show_metadata() {
 }
 
 window.addEventListener("load", function () {
+	"use strict";
+	
 	verso = document.getElementById("verso-page");
 	recto = document.getElementById("recto-page");
 	
@@ -644,14 +646,14 @@ window.addEventListener("load", function () {
 		reader.readAsText(file);
 	}, false);
 	
-	wait_button.addEventListener("click", function () {
+	/*wait_button.addEventListener("click", function () {
 		game_data.meta.turns++;
 		refresh_view(tag("p", "You wait. Time passes..."));
 	}, false);
 	
 	undo_button.addEventListener("click", function () {
 		
-	}, false);
+	}, false);*/
 	
 	restart_button.addEventListener("click", function () {
 		game_data = JSON.parse(game_text);

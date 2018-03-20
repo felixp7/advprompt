@@ -1,6 +1,6 @@
 ARTISTIC LICENSE 2.0
 
-   Copyright (c) 2016 Felix Pleşoianu
+   Copyright (c) 2016-2018 Felix Pleşoianu
 
    Everyone is permitted to copy and distribute verbatim copies of this
    license document, but changing it is not allowed.
