@@ -586,7 +586,7 @@ function pass_through(exit_obj, actor) {
 function score_object(obj_id) {
 	var obj = game_data.objects[obj_id];
 	if (obj.score && !obj.visited)
-		game_data.meta.score += obj.score;
+		game_data.meta.score += obj.score | 0;
 }
 
 function start_game() {
@@ -644,11 +644,15 @@ window.addEventListener("load", function () {
 			try {
 				game_text = reader.result;
 				game_data = JSON.parse(reader.result);
-				if (game_data.meta.turns) {
+				if (game_data.meta.turns !== undefined) {
+					game_data.meta.turns |= 0;
+					game_data.meta.score |= 0;
 					refresh_view();
 					restart_button.disabled = false;	
 					save_button.disabled = false;	
 				} else {
+					if (game_data.config.max_score)
+						game_data.config.max_score |= 0;
 					show_metadata();
 				}
 			} catch (e) {
