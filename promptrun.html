@@ -448,11 +448,15 @@ function handle_read() {
 		obj.visited = true;
 		if (obj.link)
 			game_data.objects[obj.link].dark = false;
-		var msg = obj.description;	
+		var msg = tag("div", tag("p", obj.description));
+		say(msg, success_message(obj));
 	} else {
-		var msg = "It's too dark in here to read.";
+		var msg = tag("p", "It's too dark in here to read.");
 	}
-	refresh_view(null, tag("p", msg));
+	refresh_view(null, msg);
+	
+	if (obj.ending)
+		end_game();
 }
 
 function look() {
@@ -604,6 +608,7 @@ function end_game() {
 	var buttons = document.getElementsByTagName("button");
 	for (var i in buttons)
 		buttons[i].disabled = true;
+	document.getElementById("save-button").disabled = false;
 	document.getElementById("restart-button").disabled = false;
 }
 

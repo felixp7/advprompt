@@ -80,9 +80,11 @@ The editor directly supports four main object types:
 To get other types, first `create` a thing, then `set` its type to one of:
 
 - `scenery` objects are part of the landscape and not meant to be picked up.
-  Additionally, if linked to somewhere else they double as an exit;
+  If linked to somewhere else, they become portals that can be entered;
 - `vehicle`: the hero can board such an object if they pass the lock. Once
   in a vehicle, all exits treat it as the actor for traversal purposes.
+- `text`: designates an inscription the player can read if there's light in
+  the room. Use for something like graffiti, that can't be picked up.
 """
 
 help_text["identifiers"] = """
@@ -192,8 +194,8 @@ The sticky flag applies to most types of objects:
 help_text["ending"] = """
 The game ends when an object with the `ending` flag set is successfully
 used by the player (see: success). The object's success message will be
-shown with appropriate formatting. Currently this only works for rooms
-and exits.
+shown with appropriate formatting. Currently this only works for rooms,
+exits and inscriptions.
 """
 
 help_text["meta"] = """
