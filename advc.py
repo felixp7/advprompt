@@ -43,34 +43,46 @@ def new_game():
 	game["objects"]["limbo"]["description"] = "You are in limbo."
 	return game
 
-def parse_value(text):
-	low = text.lower()
-	if low in ["true", "yes", "on"]:
-		return True
-	elif low in ["false", "no", "off"]:
-		return False
-	else:
-		try:
-			return int(text)
-		except ValueError:
-			return text
-		except OverflowError:
-			return text
+#def parse_value(text):
+	#low = text.lower()
+	#if low in ["true", "yes", "on"]:
+		#return True
+	#elif low in ["false", "no", "off"]:
+		#return False
+	#else:
+		#try:
+			#return int(text)
+		#except ValueError:
+			#return text
+		#except OverflowError:
+			#return text
 
 def merge_data(config, output):
 	for i in config["META"]:
 		output["meta"][i] = config["META"][i]
 	for i in config["CONFIG"]:
-		output["config"][i] = parse_value(config["CONFIG"][i])
+		if i == "max_score":
+			output["config"][i] = int(config["CONFIG"][i])
+		elif i == "use_score":
+			output["config"][i] = config.getboolean("CONFIG", i)
+		else:
+			output["config"][i] = config["CONFIG"][i]
+	flags = ["ending", "dark", "light", "sticky", "visited"]
 	for i in config:
 		if i in ["DEFAULT", "CONFIG", "META"]:
 			continue
 
 		if i not in output["objects"]:
 			output["objects"][i] = {}
-		obj = config[i]
-		for j in obj:
-			output["objects"][i][j] = parse_value(obj[j])
+		inobj = config[i]
+		outobj = output["objects"][i]
+		for j in inobj:
+			if j == "score":
+				outobj[j] = int(inobj[j])
+			elif j in flags:
+				outobj[j] = config.getboolean(i, j)
+			else:
+				outobj[j] = inobj[j]
 
 def story_stats(game_data):
 	type_count = {}
@@ -91,12 +103,18 @@ def game2config(game):
 		output["META"][i] = str(game["meta"][i])
 	output["CONFIG"] = {}
 	for i in game["config"]:
-		output["CONFIG"][i] = str(game["config"][i])
+		if type(game["config"][i]) == float:
+			output["CONFIG"][i] = str(int(game["config"][i]))
+		else:
+			output["CONFIG"][i] = str(game["config"][i])
 	for i in game["objects"]:
 		obj = game["objects"][i]
 		output[i] = {}
 		for j in obj:
-			output[i][j] = str(obj[j])
+			if type(obj[j]) == float:
+				output[i][j] = str(int(obj[j]))
+			else:
+				output[i][j] = str(obj[j])
 
 	return output
 
