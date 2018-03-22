@@ -3,8 +3,11 @@
 
 from __future__ import print_function
 
+import sys
 import configparser
 import uuid
+
+obj_types = ["actor", "room", "exit", "thing", "scenery", "vehicle", "text"]
 
 def new_meta():
 	return {
@@ -43,20 +46,6 @@ def new_game():
 	game["objects"]["limbo"]["description"] = "You are in limbo."
 	return game
 
-#def parse_value(text):
-	#low = text.lower()
-	#if low in ["true", "yes", "on"]:
-		#return True
-	#elif low in ["false", "no", "off"]:
-		#return False
-	#else:
-		#try:
-			#return int(text)
-		#except ValueError:
-			#return text
-		#except OverflowError:
-			#return text
-
 def merge_data(config, output):
 	for i in config["META"]:
 		output["meta"][i] = config["META"][i]
@@ -83,6 +72,55 @@ def merge_data(config, output):
 				outobj[j] = config.getboolean(i, j)
 			else:
 				outobj[j] = inobj[j]
+
+def sanity_check(game_data):
+	errcount = 0
+	db = game_data["objects"]
+	linked = set()
+	for i in db:
+		if "link" in db[i]:
+			if db[i]["link"] in db:
+				linked.add(db[i]["link"])
+			else:
+				report_bad_link(i, db[i]["link"])
+				errcount += 1
+		if "location" in db[i] and db[i]["location"] not in db:
+			report_bad_parent(i, db[i]["location"])
+			errcount += 1
+	for i in list(db.keys()): # Allow for deleting keys within the loop.
+		if "type" not in db[i]:
+			db[i]["type"] = "thing"
+			report_default_type(i)
+		elif db[i]["type"] not in obj_types:
+			report_bad_type(i, db[i]["type"])
+		elif db[i]["type"] == "room":
+			if i not in linked:
+				if i == "limbo":
+					 # It's probably the unused default.
+					del db[i]
+				else:
+					report_unlinked_room(i)
+	return errcount == 0
+
+def report_bad_link(obj_id, link):
+	e = "Error: {0} links to non-existent object {1}."
+	print(e.format(obj_id, link), file=sys.stderr)
+
+def report_bad_parent(obj_id, link):
+	e = "Error: {0} located in non-existent object {1}."
+	print(e.format(obj_id, link), file=sys.stderr)
+
+def report_default_type(obj_id):
+	e = "Warning: Object {0} has no type, was set to 'thing'."
+	print(e.format(obj_id), file=sys.stderr)
+
+def report_bad_type(obj_id, type_id):
+	e = "Warning: Object {0} has unknown type {1}."
+	print(e.format(obj_id, type_id), file=sys.stderr)
+
+def report_unlinked_room(obj_id):
+	e = "Warning: room {0} has no links pointing to it."
+	print(e.format(obj_id), file=sys.stderr)
 
 def story_stats(game_data):
 	type_count = {}
@@ -119,7 +157,6 @@ def game2config(game):
 	return output
 
 if __name__ == "__main__":
-	import sys
 	import json
 	import argparse
 
@@ -142,8 +179,9 @@ if __name__ == "__main__":
 			i.close()
 			merge_data(config, output)
 
-		# TO DO: sanity checks
-		if args.stats:
+		if not sanity_check(output):
+			pass
+		elif args.stats:
 			stats = story_stats(output)
 			print("Object count by type:")
 			for i in stats:
@@ -153,5 +191,7 @@ if __name__ == "__main__":
 			game2config(output).write(sys.stdout)
 		else:
 			print(json.dumps(output), end='')
+	except ValueError as e:
+		print("Error in game data: " + str(e), file=sys.stderr)
 	except Exception as e:
-		print("Couldn't read configuration file: " + str(e))
+		print("Error compiling story file: " + str(e), file=sys.stderr)

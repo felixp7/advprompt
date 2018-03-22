@@ -67,4 +67,4 @@ if __name__ == "__main__":
 			output = game2config(game_data)
 			output.write(sys.stdout)
 	except Exception as e:
-		print("Couldn't read story file: " + str(e), sys.stderr)
+		print("Couldn't read story file: " + str(e), file=sys.stderr)
