@@ -88,7 +88,7 @@ def sanity_check(game_data):
 		if "location" in db[i] and db[i]["location"] not in db:
 			if db[i]["location"] in db:
 				linked.add(db[i]["location"])
-			else:
+			else: # Not really a problem unless it's the hero.
 				report_bad_parent(i, db[i]["location"])
 				errcount += 1
 		if "lock" in db[i]:
@@ -134,7 +134,7 @@ def report_bad_type(obj_id, type_id):
 	print(e.format(obj_id, type_id), file=sys.stderr)
 
 def report_bad_lock(obj_id, lock):
-	e = "Warning: Bad key type {0} in object {1}."
+	e = "Error: Bad key type {0} in object {1}."
 	print(e.format(lock, obj_id), file=sys.stderr)
 
 def report_bad_key(obj_id, key_id):
@@ -193,6 +193,9 @@ if __name__ == "__main__":
 		help="output statistics instead of a story file")
 	group.add_argument("-m", "--merge", action="store_true",
 		help="output a merged configuration instead of a story file")
+	group.add_argument("-r", "--runner",
+		type=argparse.FileType('r'), nargs='?',
+		help="bundle a stand-alone game using the given runner")
 	pargs.add_argument("source", type=argparse.FileType('r'), nargs='*',
 		help="configuration files to use as input")
 	args = pargs.parse_args()
@@ -217,6 +220,12 @@ if __name__ == "__main__":
 			print("Total:    {0:5d}".format(sum(stats.values())))
 		elif args.merge:
 			game2config(output).write(sys.stdout)
+		elif args.runner != None:
+			tpl = args.runner.read(-1)
+			args.runner.close()
+			place = "var game_data = null;"
+			text = "var game_data = " + json.dumps(output) + ";"
+			print(tpl.replace(place, text), end='')
 		else:
 			print(json.dumps(output), end='')
 	except ValueError as e:
