@@ -8,6 +8,7 @@ import configparser
 import uuid
 
 obj_types = ["actor", "room", "exit", "thing", "scenery", "vehicle", "text"]
+lock_types = ["?", "!", "+", "-", "@", "^", "#", "~"]
 
 def new_meta():
 	return {
@@ -85,8 +86,22 @@ def sanity_check(game_data):
 				report_bad_link(i, db[i]["link"])
 				errcount += 1
 		if "location" in db[i] and db[i]["location"] not in db:
-			report_bad_parent(i, db[i]["location"])
-			errcount += 1
+			if db[i]["location"] in db:
+				linked.add(db[i]["location"])
+			else:
+				report_bad_parent(i, db[i]["location"])
+				errcount += 1
+		if "lock" in db[i]:
+			lock = db[i]["lock"][0]
+			key = db[i]["lock"][1:]
+			if lock not in lock_types:
+				report_bad_lock(i, lock)
+				errcount += 1
+			if key in db:
+				linked.add(key)
+			else:
+				report_bad_key(i, key)
+				errcount += 1
 	for i in list(db.keys()): # Allow for deleting keys within the loop.
 		if "type" not in db[i]:
 			db[i]["type"] = "thing"
@@ -117,6 +132,14 @@ def report_default_type(obj_id):
 def report_bad_type(obj_id, type_id):
 	e = "Warning: Object {0} has unknown type {1}."
 	print(e.format(obj_id, type_id), file=sys.stderr)
+
+def report_bad_lock(obj_id, lock):
+	e = "Warning: Bad key type {0} in object {1}."
+	print(e.format(lock, obj_id), file=sys.stderr)
+
+def report_bad_key(obj_id, key_id):
+	e = "Error: {0} locked to non-existent object {1}."
+	print(e.format(obj_id, key_id), file=sys.stderr)
 
 def report_unlinked_room(obj_id):
 	e = "Warning: room {0} has no links pointing to it."
@@ -161,8 +184,11 @@ if __name__ == "__main__":
 	import argparse
 
 	pargs = argparse.ArgumentParser(prog="advc.py",
-		description="Compile Adventure Prompt config to a story file.")
+		description="Compile Adventure Prompt config to a story file.",
+		epilog="Give no input files to get a minimal, default story.")
 	group = pargs.add_mutually_exclusive_group()
+	group.add_argument("-c", "--check", action="store_true",
+		help="only perform sanity checks, don't output a story")
 	group.add_argument("-s", "--stats", action="store_true",
 		help="output statistics instead of a story file")
 	group.add_argument("-m", "--merge", action="store_true",
@@ -180,6 +206,8 @@ if __name__ == "__main__":
 			merge_data(config, output)
 
 		if not sanity_check(output):
+			pass # Should this say something to cap the errors?
+		elif args.check:
 			pass
 		elif args.stats:
 			stats = story_stats(output)
