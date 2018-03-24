@@ -221,8 +221,8 @@ if __name__ == "__main__":
 		elif args.merge:
 			game2config(output).write(sys.stdout)
 		elif args.runner != None:
-			tpl = args.runner.read(-1)
-			args.runner.close()
+			tpl = args.runner[0].read(-1)
+			args.runner[0].close()
 			place = "var game_data = null;"
 			text = "var game_data = " + json.dumps(output) + ";"
 			print(tpl.replace(place, text), end='')
