@@ -85,7 +85,7 @@ def sanity_check(game_data):
 			else:
 				report_bad_link(i, db[i]["link"])
 				errcount += 1
-		if "location" in db[i] and db[i]["location"] not in db:
+		if "location" in db[i]:
 			if db[i]["location"] in db:
 				linked.add(db[i]["location"])
 			else: # Not really a problem unless it's the hero.
@@ -194,7 +194,7 @@ if __name__ == "__main__":
 	group.add_argument("-m", "--merge", action="store_true",
 		help="output a merged configuration instead of a story file")
 	group.add_argument("-r", "--runner",
-		type=argparse.FileType('r'), nargs='?',
+		type=argparse.FileType('r'), nargs=1,
 		help="bundle a stand-alone game using the given runner")
 	pargs.add_argument("source", type=argparse.FileType('r'), nargs='*',
 		help="configuration files to use as input")
