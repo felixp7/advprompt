@@ -7,7 +7,8 @@ import sys
 import configparser
 import uuid
 
-obj_types = ["actor", "room", "exit", "thing", "scenery", "vehicle", "text"]
+obj_types = ["actor", "room", "exit", "thing", "scenery", "vehicle", "text",
+	"action", "spell", "topic"]
 lock_types = ["?", "!", "+", "-", "@", "^", "#", "~"]
 
 def new_meta():

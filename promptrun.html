@@ -251,7 +251,7 @@ function find_objects_in(loc) {
 		var obj = game_data.objects[i];
 		if (obj.location !== loc)
 			continue;
-		else if (obj.type === "exit")
+		else if (obj.type === "exit" || obj.type === "action")
 			continue;
 		else if (i === "hero")
 			continue;
@@ -307,6 +307,13 @@ function object_actions(obj_id, obj) {
 		case "text":
 			list.push(action_button(
 				"read", obj_id, handle_read));
+	}
+	for (i in game_data.objects) {
+		var obj2 = game_data.objects[i];
+		if (obj2.location === obj_id && obj2.type === "action")
+			if (!obj2.dark)
+				list.push(action_button(
+					obj2.name, i, handle_action));
 	}
 	return list;
 }
@@ -458,6 +465,27 @@ function handle_read() {
 	
 	if (obj.ending)
 		end_game();
+}
+
+function handle_action() {
+	var obj_id = this.getAttribute("data-target");
+	var obj = game_data.objects[obj_id];
+	
+	game_data.meta.turns++;
+	if (pass_lock("hero", obj.lock)) {
+		score_object(obj_id);
+		obj.visited = true;
+		if (obj.link) {
+			var target = game_data.objects[obj.link];
+			target.dark = !target.dark;
+		}
+		if (!obj.sticky)
+			obj.dark = true;
+		var msg = tag("p", success_message(obj));
+	} else {
+		var msg = tag("p", obj.failure);
+	}
+	refresh_view(null, msg);
 }
 
 function look() {
