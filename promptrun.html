@@ -216,10 +216,25 @@ function visible_objects(room_id) {
 	say(list, tag("dt", "You see:"));
 	if (room_has_light(room_id))
 		say(list, tag("dd", object_list(find_objects_in(room_id))));
+	var inventory = find_objects_in("hero");
+	var non_spells = filter_objects(inventory,
+		function (obj) { return obj.type !== "spell"; });
+	var spells = filter_objects(inventory,
+		function (obj) { return obj.type === "spell"; });
 	say(list, tag("dt", "You are carrying:"));
-	say(list, tag("dd", object_list(find_objects_in("hero"))));
+	say(list, tag("dd", object_list(non_spells)));
+	say(list, tag("dt", "Spells you know:"));
+	say(list, tag("dd", object_list(spells)));
 	
 	return list;
+}
+
+function filter_objects(group, filter) {
+	var kept = {};
+	for (var i in group)
+		if (filter(group[i]))
+			kept[i] = group[i];
+	return kept;
 }
 
 function room_here() {
@@ -307,6 +322,13 @@ function object_actions(obj_id, obj) {
 		case "text":
 			list.push(action_button(
 				"read", obj_id, handle_read));
+		case "spell":
+			if (obj.location === "hero")
+				list.push(action_button(
+					"cast", obj_id, handle_cast));
+			else
+				list.push(action_button(
+					"learn", obj_id, handle_learn));
 	}
 	for (i in game_data.objects) {
 		var obj2 = game_data.objects[i];
@@ -481,6 +503,38 @@ function handle_action() {
 		}
 		if (!obj.sticky)
 			obj.dark = true;
+		var msg = tag("p", success_message(obj));
+	} else {
+		var msg = tag("p", obj.failure);
+	}
+	refresh_view(null, msg);
+}
+
+function handle_learn() {
+	var obj_id = this.getAttribute("data-target");
+	var obj = game_data.objects[obj_id];
+	
+	score_object(obj_id);
+	obj.location = "hero";
+	obj.visited = true;
+	game_data.meta.turns++;
+	refresh_view(null, "You seem to have learned a new spell!");
+}
+
+function handle_cast() {
+	var obj_id = this.getAttribute("data-target");
+	var obj = game_data.objects[obj_id];
+	
+	if (pass_lock("hero", obj.lock)) {
+		if (obj.link) {
+			var target = game_data.objects[obj.link];
+			if (target.type === "room") {
+				score_object(obj.link);
+				game_data.objects.hero.location = obj.link;
+			} else {
+				target.location = room_here();
+			}
+		}
 		var msg = tag("p", success_message(obj));
 	} else {
 		var msg = tag("p", obj.failure);
