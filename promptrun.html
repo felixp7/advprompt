@@ -205,17 +205,14 @@ function refresh_view(verso_msg, recto_msg) {
 	recto.innerHTML = "";
 	if (recto_msg)
 		say(recto, recto_msg);
-	say(recto, visible_objects(room_here()));
+	say(recto, carried_objects());
 }
 
-function visible_objects(room_id) {
+function carried_objects() {
 	var list = tag("dl");
 	
 	say(list, tag("dt", game_data.objects.hero.name));
 	say(list, tag("dd", game_data.objects.hero.description));
-	say(list, tag("dt", "You see:"));
-	if (room_has_light(room_id))
-		say(list, tag("dd", object_list(find_objects_in(room_id))));
 	var inventory = find_objects_in("hero");
 	var non_spells = filter_objects(inventory,
 		function (obj) { return obj.type !== "spell"; });
@@ -223,8 +220,10 @@ function visible_objects(room_id) {
 		function (obj) { return obj.type === "spell"; });
 	say(list, tag("dt", "You are carrying:"));
 	say(list, tag("dd", object_list(non_spells)));
-	say(list, tag("dt", "Spells you know:"));
-	say(list, tag("dd", object_list(spells)));
+	if (game_data.config.use_spells) {
+		say(list, tag("dt", "Spells you know:"));
+		say(list, tag("dd", object_list(spells)));
+	}
 	
 	return list;
 }
@@ -322,6 +321,7 @@ function object_actions(obj_id, obj) {
 		case "text":
 			list.push(action_button(
 				"read", obj_id, handle_read));
+			break;
 		case "spell":
 			if (obj.location === "hero")
 				list.push(action_button(
@@ -545,10 +545,12 @@ function handle_cast() {
 function look() {
 	var obj = game_data.objects;
 	var me = obj.hero;
-	var here = obj[me.location];
+	var room_id = me.location
+	var here = obj[room_id];
 	if (here.type === "vehicle") {
 		var vehicle_msg = " (on the " + here.name + ")";
-		here = obj[here.location];
+		room_id = here.location
+		here = obj[room_id];
 	} else {
 		var vehicle_msg = "";
 	}
@@ -562,6 +564,8 @@ function look() {
 			say(verso, tag("p", here.description));
 		here.visited = true;
 		say(verso, success_message(here));
+		say(verso, tag("div", tag("b", "You see:")));
+		say(verso, object_list(find_objects_in(room_id)));
 	} else {
 		if (here.failure)
 			say(verso, here.failure);
@@ -587,7 +591,8 @@ function success_message(obj) {
 }
 
 function exit_list(room_id) {
-	var list = tag("div", "Which way now? ");
+	var list = tag("div", tag("b", "Which way now?"));
+	say(list, tag("br"));
 	var obj = game_data.objects;
 	if (obj[room_id].type === "vehicle") {
 		var actor = room_id;
