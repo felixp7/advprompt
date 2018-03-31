@@ -219,13 +219,30 @@ function carried_objects() {
 	var spells = filter_objects(inventory,
 		function (obj) { return obj.type === "spell"; });
 	say(list, tag("dt", "You are carrying:"));
-	say(list, tag("dd", object_list(non_spells)));
+	if (count_keys(non_spells) > 0)
+		say(list, tag("dd", object_list(non_spells)));
+	else
+		say(list, tag("dd", "Nothing."));
 	if (game_data.config.use_spells) {
 		say(list, tag("dt", "Spells you know:"));
-		say(list, tag("dd", object_list(spells)));
+		if (count_keys(spells) > 0)
+			say(list, tag("dd", object_list(spells)));
+		else
+			say(list, tag("dd", "None yet."));
+	}
+	if (game_data.config.use_breakdown) {
+		say(list, tag("dt", "Score breakdown:"));
+		say(list, tag("dd", score_breakdown()));
 	}
 	
 	return list;
+}
+
+// Avoid creating an discarding an array as with Object.keys(obj).length.
+function count_keys(obj) {
+	var count = 0;
+	for (var i in obj) count++;
+	return count;
 }
 
 function filter_objects(group, filter) {
@@ -234,6 +251,47 @@ function filter_objects(group, filter) {
 		if (filter(group[i]))
 			kept[i] = group[i];
 	return kept;
+}
+
+function score_breakdown() {
+	var list = tag("ul");
+	for (var i in game_data.objects) {
+		var obj = game_data.objects[i];
+		if (obj.score && obj.visited)
+			say(list, tag("li", explain_score(i, obj)));
+	}
+	return list;
+}
+
+function explain_score(obj_id, obj) {
+	switch (obj.type) {
+		case "room": return obj.score
+			+ " points for visiting "
+			+ obj.name;
+		case "exit": return obj.score
+			+ " points for going "
+			+ obj.name + " from "
+			+ game_data.objects[obj_id.location].name;
+		case "scenery": return obj.score
+			+ " points for entering the "
+			+ obj.name;
+		case "thing": return obj.score
+			+ " points for picking up the "
+			+ obj.name;
+		case "vehicle": return obj.score
+			+ " points for getting on the "
+			+ obj.name;
+		case "text": return obj.score
+			+ " points for reading the "
+			+ obj.name;
+		case "action": return obj.score
+			+ " points for getting to "
+			+ obj.name + " the "
+			+ game_data.objects[obj_id.location].name;
+		case "spell": return obj.score
+			+ " points for learning "
+			+ obj.name;
+	}
 }
 
 function room_here() {
@@ -266,8 +324,6 @@ function find_objects_in(loc) {
 		if (obj.location !== loc)
 			continue;
 		else if (obj.type === "exit" || obj.type === "action")
-			continue;
-		else if (i === "hero")
 			continue;
 		else
 			found[i] = obj;
@@ -564,8 +620,12 @@ function look() {
 			say(verso, tag("p", here.description));
 		here.visited = true;
 		say(verso, success_message(here));
-		say(verso, tag("div", tag("b", "You see:")));
-		say(verso, object_list(find_objects_in(room_id)));
+		var obj = find_objects_in(room_id);
+		delete obj.hero;
+		if (count_keys(obj) > 0) {
+			say(verso, tag("div", tag("b", "You see:")));
+			say(verso, object_list(obj));
+		}
 	} else {
 		if (here.failure)
 			say(verso, here.failure);
