@@ -187,6 +187,8 @@ if __name__ == "__main__":
 	pargs = argparse.ArgumentParser(prog="advc.py",
 		description="Compile Adventure Prompt config to a story file.",
 		epilog="Give no input files to get a minimal, default story.")
+	pargs.add_argument("-v", "--version", action="version",
+		version="%(prog)s version 2018-03-27")
 	group = pargs.add_mutually_exclusive_group()
 	group.add_argument("-c", "--check", action="store_true",
 		help="only perform sanity checks, don't output a story")

@@ -19,7 +19,7 @@ import glob
 
 app_banner = """
 Welcome to Adventure Prompt, a system for authoring interactive fiction
-interactively. Type HELP or ? to see a list of commands.
+interactively, version 2018-03-21. Type HELP or ? to see a list of commands.
 """
 
 help_text = {}

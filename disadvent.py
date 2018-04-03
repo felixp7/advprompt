@@ -46,6 +46,8 @@ if __name__ == "__main__":
 
 	pargs = argparse.ArgumentParser(prog="disadvent.py",
 		description="Decompile Adventure Prompt story files.")
+	pargs.add_argument("-v", "--version", action="version",
+		version="%(prog)s version 2018-03-22")
 	pargs.add_argument("-s", "--stats", action="store_true",
 		help="output statistics instead of decompiling")
 	pargs.add_argument("story", type=argparse.FileType('r'), nargs=1,

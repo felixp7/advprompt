@@ -102,8 +102,13 @@
 <div class="page-frame">
  <div id="verso-page" class="page-content" aria-live="polite">
   <div role="contentinfo">
-   <p>Welcome to Adventure Prompt, an experimental (as of 6 Nov 2016) engine for interactive fiction; this is the runner, or interpreter &mdash; the half that allows you to actually play games. You should be able to get some from the same place where you found this. Look for files with the .json extension.
-   <p>If you want to create your own adventures, there is an the editor called <code>advprompt.py</code> that should be available from the same source.
+   <p>Welcome to Adventure Prompt 1.0, from 3 April 2018, a system for making
+   and playing interactive fiction. This is the runner, or interpreter &mdash;
+   the half that lets you play story files. You should be able to get samples
+   from the same place where you found this. Look for files with the
+   <code>.json</code> extension.
+   <p>To create your own adventures, look for the tools that should be
+   available from the same source.
   </div>
  </div>
 </div>
@@ -430,7 +435,18 @@ function object_description(obj_id) {
 	} else {
 		say(desc, tag("p", "You see nothing special."));
 	}
-	say(desc, object_list(find_objects_in(obj_id)));
+	var content = find_objects_in(obj_id);
+	var non_topics = filter_objects(content,
+		function (obj) { return obj.type !== "topic"; });
+	var topics = filter_objects(content,
+		function (obj) { return obj.type === "topic"; });
+	say(desc, object_list(non_topics));
+	if (count_keys(topics) > 0) {
+		say(desc, "Learn about: ");
+		for (var i in topics)
+			say(desc, action_button(
+				topics[i].name, i, handle_topic));
+	}
 	return desc;
 }
 
@@ -591,10 +607,30 @@ function handle_cast() {
 				target.location = room_here();
 			}
 		}
+		obj.visited = true;
 		var msg = tag("p", success_message(obj));
 	} else {
 		var msg = tag("p", obj.failure);
 	}
+	game_data.meta.turns++;
+	refresh_view(null, msg);
+}
+
+function handle_topic() {
+	var obj_id = this.getAttribute("data-target");
+	var obj = game_data.objects[obj_id];
+	
+	if (pass_lock("hero", obj.lock)) {
+		score_object(obj_id);
+		obj.visited = true;
+		if (obj.link)
+			game_data.objects[obj.link].dark = false;
+		var msg = tag("div", tag("p", obj.description));
+		say(msg, success_message(obj));
+	} else {
+		var msg = tag("p", obj.failure);
+	}
+	game_data.meta.turns++;
 	refresh_view(null, msg);
 }
 
