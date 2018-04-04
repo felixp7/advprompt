@@ -49,15 +49,18 @@ def new_game():
 	return game
 
 def merge_data(config, output):
-	for i in config["META"]:
-		output["meta"][i] = config["META"][i]
-	for i in config["CONFIG"]:
-		if i == "max_score":
-			output["config"][i] = int(config["CONFIG"][i])
-		elif i == "use_score":
-			output["config"][i] = config.getboolean("CONFIG", i)
-		else:
-			output["config"][i] = config["CONFIG"][i]
+	if "META" in config:
+		for i in config["META"]:
+			output["meta"][i] = config["META"][i]
+	if "CONFIG" in config:
+		for i in config["CONFIG"]:
+			if i == "max_score":
+				output["config"][i] = int(config["CONFIG"][i])
+			elif i == "use_score":
+				output["config"][i] = config.getboolean(
+					"CONFIG", i)
+			else:
+				output["config"][i] = config["CONFIG"][i]
 	flags = ["ending", "dark", "light", "sticky", "visited"]
 	for i in config:
 		if i in ["DEFAULT", "CONFIG", "META"]:
@@ -188,7 +191,7 @@ if __name__ == "__main__":
 		description="Compile Adventure Prompt config to a story file.",
 		epilog="Give no input files to get a minimal, default story.")
 	pargs.add_argument("-v", "--version", action="version",
-		version="%(prog)s version 2018-03-27")
+		version="%(prog)s version 1.0, 4 April 2018")
 	group = pargs.add_mutually_exclusive_group()
 	group.add_argument("-c", "--check", action="store_true",
 		help="only perform sanity checks, don't output a story")
