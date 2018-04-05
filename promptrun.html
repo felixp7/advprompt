@@ -102,7 +102,7 @@
 <div class="page-frame">
  <div id="verso-page" class="page-content" aria-live="polite">
   <div role="contentinfo">
-   <p>Welcome to Adventure Prompt 1.0, from 3 April 2018, a system for making
+   <p>Welcome to Adventure Prompt 1.0, from 5 April 2018, a system for making
    and playing interactive fiction. This is the runner, or interpreter &mdash;
    the half that lets you play story files. You should be able to get samples
    from the same place where you found this. Look for files with the
@@ -625,8 +625,7 @@ function handle_topic() {
 		obj.visited = true;
 		if (obj.link)
 			game_data.objects[obj.link].dark = false;
-		var msg = tag("div", tag("p", obj.description));
-		say(msg, success_message(obj));
+		var msg = object_description(obj_id);
 	} else {
 		var msg = tag("p", obj.failure);
 	}
