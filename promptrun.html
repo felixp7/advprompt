@@ -102,7 +102,7 @@
 <div class="page-frame">
  <div id="verso-page" class="page-content" aria-live="polite">
   <div role="contentinfo">
-   <p>Welcome to Adventure Prompt 1.0, from 5 April 2018, a system for making
+   <p>Welcome to Adventure Prompt 1.0b, from 6 April 2018, a system for making
    and playing interactive fiction. This is the runner, or interpreter &mdash;
    the half that lets you play story files. You should be able to get samples
    from the same place where you found this. Look for files with the
@@ -190,6 +190,7 @@ function status_line() {
 	line.setAttribute("role", "status");
 	if (game_data.config.use_score) {
 		var score = tag("span");
+		score.id = "score";
 		score.style.float = "left";
 		say(score, " Score: " + game_data.meta.score
 			+ "/" + (game_data.config.max_score || "?"));
@@ -649,11 +650,15 @@ function look() {
 	say(verso, tag("div", tag("b", here.name + vehicle_msg)));
 	
 	if (room_has_light(room_here())) {
+		score_object(room_id);
 		if (!here.visited && here.initial)
 			say(verso, tag("p", here.initial));
 		else
 			say(verso, tag("p", here.description));
 		here.visited = true;
+		document.getElementById("score").innerText =
+			" Score: " + game_data.meta.score
+				+ "/" + (game_data.config.max_score || "?");
 		say(verso, success_message(here));
 		var obj = find_objects_in(room_id);
 		delete obj.hero;
@@ -757,9 +762,6 @@ function pass_lock(actor_id, lock) {
 }
 
 function pass_through(exit_obj, actor) {
-	// Rooms must be scored *before* entering them,
-	// or else the change won't register until next turn.
-	score_object(exit_obj.link);
 	actor.location = exit_obj.link;
 	exit_obj.visited = true;
 
